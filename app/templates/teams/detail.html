@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "matches/_macros.html" import upcoming_card, score %}
+{% block title %}{{ team.name }} – CS2 Ennustin{% endblock %}
+
+{% block content %}
+<h1>{{ team.name }}</h1>
+<p class="muted">
+  {% if team.vrs_rank %}VRS #{{ team.vrs_rank }} ({{ team.vrs_points | int }} p, {{ team.vrs_date }}) · {% endif %}
+  Vahvuus <strong>{{ rating | round | int }}</strong>
+  {% if team.coach %} · Valmentaja {{ team.coach }}{% endif %}
+  {% if team.liquipedia_page %} · <a href="https://liquipedia.net/counterstrike/{{ team.liquipedia_page | replace(' ', '_') }}">Liquipedia</a>{% endif %}
+</p>
+
+{% if upcoming %}
+<h2>Tulevat ottelut</h2>
+<div class="match-grid">
+  {% for m in upcoming %}{{ upcoming_card(m) }}{% endfor %}
+</div>
+{% endif %}
+
+<div class="grid">
+  <section class="card">
+    <h2>Nykyinen kokoonpano</h2>
+    <table>
+      <thead><tr><th>Pelaaja</th><th>Nimi</th><th>Maa</th><th>Rooli</th><th>Liittyi</th></tr></thead>
+      <tbody>
+        {% for p in roster %}
+        <tr>
+          <td><a href="{{ url_for('players.player_detail', player_id=p.id) }}">{{ p.nickname }}</a></td>
+          <td>{{ p.real_name or '–' }}</td>
+          <td title="{{ p.country or '' }}">{{ p.country | flag or '–' }}</td>
+          <td>{{ p.role or '' }}</td>
+          <td>{{ p.start_date }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="muted">Ei pelaajia.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if former %}
+    <h2>Entiset pelaajat</h2>
+    <table>
+      <thead><tr><th>Pelaaja</th><th>Rooli</th><th>Jakso</th></tr></thead>
+      <tbody>
+        {% for p in former %}
+        <tr>
+          <td><a href="{{ url_for('players.player_detail', player_id=p.id) }}">{{ p.nickname }}</a></td>
+          <td>{{ p.role or '–' }}</td>
+          <td>{{ p.start_date }} – {{ p.end_date }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Viimeisimmät ottelut</h2>
+    <table>
+      <tbody>
+        {% for m in matches %}
+        {# Voittiko TÄMÄ joukkue ottelun? #}
+        {% set won = m.winner_id == team.id %}
+        <tr>
+          <td class="date">{{ m.played_at | local_time }}</td>
+          <td>{{ m.team1_name }} <strong>{{ score(m) }}</strong> {{ m.team2_name }}</td>
+          <td><span class="tag {{ 'in' if won else 'out' }}">{{ 'V' if won else 'H' }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td class="muted">Ei otteluita.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

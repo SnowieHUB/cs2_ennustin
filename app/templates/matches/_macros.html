@@ -1,0 +1,57 @@
+{#
+  Uudelleenkäytettävät palat otteluiden näyttämiseen.
+  Alaviiva tiedostonimen alussa (_macros.html) kertoo, että tämä ei ole
+  oma sivunsa, vaan muut sivut tuovat sen käyttöönsä:
+    {% from "matches/_macros.html" import upcoming_card %}
+#}
+
+{# Joukkueen nimi linkkinä ja VRS-sijoitus pienellä perässä. #}
+{% macro team_link(team_id, name, rank) %}
+  <a href="{{ url_for('teams.team_detail', team_id=team_id) }}">{{ name }}</a>
+  {% if rank %}<span class="rank">#{{ rank }}</span>{% endif %}
+{% endmacro %}
+
+{# Yksi tuleva ottelu ennusteineen. m on add_predictions()-funktion palauttama sanakirja. #}
+{% macro upcoming_card(m) %}
+<div class="match">
+  <div class="match-meta">
+    <span class="date">{{ m.played_at | local_time }}</span>
+    <span class="event">{{ m.event or '' }}{% if m.best_of %} · Bo{{ m.best_of }}{% endif %}</span>
+  </div>
+  <div class="match-teams">
+    {# Suosikki (todennäköisyys yli 50 %) lihavoidaan. #}
+    <div class="team {{ 'fav' if m.prob1 > 0.5 }}">
+      {{ team_link(m.team1_id, m.team1_name, m.team1_rank) }}
+      <span class="prob">{{ m.prob1 | percent }}</span>
+    </div>
+    <div class="team right {{ 'fav' if m.prob2 > 0.5 }}">
+      <span class="prob">{{ m.prob2 | percent }}</span>
+      {{ team_link(m.team2_id, m.team2_name, m.team2_rank) }}
+    </div>
+  </div>
+  {# Palkki: vihreän osan leveys = joukkueen 1 voittotodennäköisyys. #}
+  <div class="bar"><div class="bar-a" style="width: {{ m.prob1 * 100 }}%"></div></div>
+  {% if m.uncertain %}
+    <p class="uncertain">Epävarma: toisella joukkueella on vähän otteluita historiassa.</p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{# Pelatun ottelun tulos: karttatulos (esim. 2–1), tai pelkkä voittaja, jos karttoja ei tiedetä. #}
+{% macro score(m) -%}
+  {%- if m.team1_score is not none -%}{{ m.team1_score }}–{{ m.team2_score }}
+  {%- elif m.winner_id == m.team1_id -%}V–H
+  {%- elif m.winner_id == m.team2_id -%}H–V
+  {%- else -%}–{%- endif -%}
+{%- endmacro %}
+
+{# Yksi pelattu ottelu tulostaulukon rivinä. Voittaja lihavoidaan. #}
+{% macro result_row(m) %}
+<tr>
+  <td class="date">{{ m.played_at | local_time }}</td>
+  <td class="{{ 'winner' if m.winner_id == m.team1_id }}">{{ team_link(m.team1_id, m.team1_name, m.team1_rank) }}</td>
+  <td class="score">{{ score(m) }}</td>
+  <td class="{{ 'winner' if m.winner_id == m.team2_id }}">{{ team_link(m.team2_id, m.team2_name, m.team2_rank) }}</td>
+  <td class="muted event">{{ m.event or '' }}</td>
+</tr>
+{% endmacro %}

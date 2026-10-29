@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Ennusta – CS2 Ennustin{% endblock %}
+
+{% from "predictions/_macros.html" import team_select %}
+
+{% block content %}
+<h1>Ennusta ottelu</h1>
+<p class="muted">Ennuste on Bo3-sarjalle. Bo1- ja Bo5-ennusteet: <a href="{{ url_for('predictions.series', team_a=team_a_id, team_b=team_b_id) if team_a_id and team_b_id else url_for('predictions.series') }}">Sarjaennuste</a>.</p>
+
+<form class="predict-form card" method="get">
+  {{ team_select("team_a", teams, team_a_id) }}
+  <span class="vs">vs</span>
+  {{ team_select("team_b", teams, team_b_id) }}
+  <button type="submit">Ennusta</button>
+</form>
+
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+{% if result %}
+<section class="card result">
+  <div class="side">
+    <h2>{{ result.team_a.name }}</h2>
+    {# "%.0f" | format(...) muotoilee luvun ilman desimaaleja #}
+    <p class="big">{{ "%.0f" | format(result.prob_a * 100) }} %</p>
+    <p class="muted">Vahvuus {{ result.rating_a | round | int }}</p>
+  </div>
+  <div class="side">
+    <h2>{{ result.team_b.name }}</h2>
+    <p class="big">{{ "%.0f" | format(result.prob_b * 100) }} %</p>
+    <p class="muted">Vahvuus {{ result.rating_b | round | int }}</p>
+  </div>
+  {# Palkki: vasemman osan leveys = A:n voittotodennäköisyys #}
+  <div class="bar"><div class="bar-a" style="width: {{ result.prob_a * 100 }}%"></div></div>
+</section>
+{% endif %}
+
+{# Mallin tarkkuus testijaksolla. metrics tulee data/model.json-tiedostosta. #}
+{% if metrics %}
+<section class="card">
+  <h2>Mallin tarkkuus</h2>
+  <p class="muted">
+    Opetettu {{ metrics.train_matches }} ottelulla ({{ metrics.train_period[0] }} – {{ metrics.train_period[1] }}).
+    Testattu otteluilla {{ metrics.test_period[0] }} – {{ metrics.test_period[1] }}, joita malli ei nähnyt opetuksessa.
+  </p>
+  <table>
+    <thead>
+      <tr><th>Malli</th><th class="num">Osumat</th><th class="num">Tier 1 osumat</th><th class="num">Log loss</th><th class="num">Brier</th></tr>
+    </thead>
+    <tbody>
+      {% for r in metrics.results %}
+      <tr class="{{ 'winner' if loop.last }}">
+        <td>{{ r.name }}</td>
+        <td class="num">{{ r.all.accuracy | percent }}</td>
+        <td class="num">{% if r.tier1 %}{{ r.tier1.accuracy | percent }} <span class="muted">({{ r.tier1.n }})</span>{% else %}–{% endif %}</td>
+        <td class="num">{{ "%.3f" | format(r.all.log_loss) }}</td>
+        <td class="num">{{ "%.3f" | format(r.all.brier) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted">Log loss ja Brier: pienempi on parempi. Kolikonheiton log loss on 0.693.</p>
+</section>
+{% endif %}
+{% endblock %}

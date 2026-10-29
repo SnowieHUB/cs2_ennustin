@@ -1,0 +1,15 @@
+{#
+  Ennustesivujen yhteiset palat. Käyttö:
+    {% from "predictions/_macros.html" import team_select %}
+#}
+
+{# Joukkueen alasvetovalikko. teams annetaan parametrina, koska tuodut makrot
+   eivät näe sivun muuttujia automaattisesti. #}
+{% macro team_select(name, teams, selected_id) %}
+<select name="{{ name }}" required>
+  <option value="">Valitse joukkue…</option>
+  {% for t in teams %}
+  <option value="{{ t.id }}" {{ 'selected' if t.id == selected_id }}>{{ t.name }}</option>
+  {% endfor %}
+</select>
+{% endmacro %}

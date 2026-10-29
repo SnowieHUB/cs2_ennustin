@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Pelaajat – CS2 Ennustin{% endblock %}
+
+{% block content %}
+<h1>Pelaajat</h1>
+
+{# GET-lomake lisää hakusanan osoitteeseen: /players/?q=sana #}
+<form class="search" method="get">
+  <input type="search" name="q" value="{{ search }}" placeholder="Hae nimellä…">
+  <button type="submit">Hae</button>
+</form>
+
+<table class="card">
+  <thead><tr><th>Pelaaja</th><th>Nimi</th><th>Maa</th><th>Joukkue</th><th>Rooli</th></tr></thead>
+  <tbody>
+    {% for p in players %}
+    <tr>
+      <td><a href="{{ url_for('players.player_detail', player_id=p.id) }}">{{ p.nickname }}</a></td>
+      <td>{{ p.real_name or '–' }}</td>
+      <td title="{{ p.country or '' }}">{{ p.country | flag or '–' }}</td>
+      <td>
+        {% if p.team_id %}
+          <a href="{{ url_for('teams.team_detail', team_id=p.team_id) }}">{{ p.team_name }}</a>
+        {% else %}
+          <span class="muted">Vapaa agentti</span>
+        {% endif %}
+      </td>
+      <td>{{ p.role or '' }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">Ei pelaajia.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

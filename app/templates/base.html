@@ -1,0 +1,44 @@
+<!doctype html>
+{#
+  Pohjasivu, jonka kaikki muut sivut perivät (extends "base.html").
+  Tässä on yhteiset osat: otsikko, navigaatio ja tyylit.
+  Muut sivut täyttävät vain content-lohkon.
+
+  HUOM: Jinjan kommentit kirjoitetaan näin, eikä HTML-kommentteina (<!-- -->),
+  koska Jinja suorittaa myös HTML-kommenttien sisällä olevat tagit.
+#}
+<html lang="fi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CS2 Ennustin{% endblock %}</title>
+  <!-- url_for etsii tiedoston oikean osoitteen, joten polkuja ei tarvitse kirjoittaa käsin -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header>
+    <a class="logo" href="{{ url_for('main.index') }}">CS2 Ennustin</a>
+    <nav>
+      <a href="{{ url_for('main.index') }}">Etusivu</a>
+      <a href="{{ url_for('matches.match_list') }}">Ottelut</a>
+      <a href="{{ url_for('teams.team_list') }}">Joukkueet</a>
+      <a href="{{ url_for('players.player_list') }}">Pelaajat</a>
+      <a href="{{ url_for('predictions.predict') }}">Ennusta</a>
+      <a href="{{ url_for('predictions.series') }}">Sarjaennuste</a>
+    </nav>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  {# Datalähteiden maininta: Liquipedian CC-BY-SA-lisenssi vaatii tämän. #}
+  <footer>
+    Data: <a href="https://github.com/ValveSoftware/counter-strike_regional_standings">Valve Regional Standings</a>
+    (tapahtumadata HLTV.org) ·
+    <a href="https://liquipedia.net/counterstrike/">Liquipedia</a>
+    (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA 3.0</a>).
+    Ennusteet ovat suuntaa antavia.
+  </footer>
+</body>
+</html>

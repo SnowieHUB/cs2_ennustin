@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Joukkueet – CS2 Ennustin{% endblock %}
+
+{% block content %}
+<h1>Joukkueet</h1>
+<table class="card">
+  <thead>
+    <tr><th>#</th><th>Joukkue</th><th class="num">VRS-sija</th><th class="num">VRS-pisteet</th><th class="num">Pelaajia</th><th class="num">Vahvuus</th></tr>
+  </thead>
+  <tbody>
+    {% for item in rankings %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td><a href="{{ url_for('teams.team_detail', team_id=item.team.id) }}">{{ item.team.name }}</a></td>
+      {# "or '–'" näyttää viivan, jos tietoa ei ole #}
+      <td class="num">{{ item.team.vrs_rank or '–' }}</td>
+      <td class="num muted">{{ item.team.vrs_points | int if item.team.vrs_points else '–' }}</td>
+      <td class="num">{{ item.team.player_count }}</td>
+      <td class="num">{{ item.rating | round | int }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

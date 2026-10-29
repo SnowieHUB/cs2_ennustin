@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "matches/_macros.html" import upcoming_card, result_row %}
+{% block title %}Ottelut – CS2 Ennustin{% endblock %}
+
+{% block content %}
+<h1>Ottelut</h1>
+
+{# Valinta tier 1:n ja kaikkien otteluiden välillä. #}
+<p class="toggle">
+  <a href="{{ url_for('matches.match_list') }}" class="{{ 'active' if not show_all }}">Tier 1 (VRS top {{ tier1_rank }})</a>
+  <a href="{{ url_for('matches.match_list', all=1) }}" class="{{ 'active' if show_all }}">Kaikki</a>
+</p>
+
+<h2>Tulevat ottelut</h2>
+<div class="match-grid">
+  {% for m in upcoming %}
+    {{ upcoming_card(m) }}
+  {% else %}
+    <p class="muted">Ei tulevia otteluita. Päivitä: python manage.py sync</p>
+  {% endfor %}
+</div>
+
+<h2>Viimeisimmät tulokset</h2>
+<table class="card">
+  <tbody>
+    {% for m in results %}
+      {{ result_row(m) }}
+    {% else %}
+      <tr><td class="muted">Ei tuloksia.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

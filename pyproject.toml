@@ -1,0 +1,5 @@
+# pytest-asetukset: projektin juuri lisätään Pythonin hakupolkuun,
+# jotta testit löytävät app-paketin.
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

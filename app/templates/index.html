@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "matches/_macros.html" import upcoming_card, team_link %}
+
+{% block content %}
+<section>
+  <h2>Tulevat tier 1 -ottelut <a class="more" href="{{ url_for('matches.match_list') }}">kaikki ottelut →</a></h2>
+  <div class="match-grid">
+    {% for m in upcoming %}
+      {{ upcoming_card(m) }}
+    {% else %}
+      <p class="muted">Ei tulevia otteluita. Päivitä: python manage.py sync</p>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="grid">
+  <section class="card">
+    <h2>Vahvuusranking</h2>
+    <table>
+      <thead><tr><th>#</th><th>Joukkue</th><th class="num">VRS</th><th class="num">Vahvuus</th></tr></thead>
+      <tbody>
+        {# loop.index on silmukan järjestysnumero, alkaen 1:stä #}
+        {% for item in rankings %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td><a href="{{ url_for('teams.team_detail', team_id=item.team.id) }}">{{ item.team.name }}</a></td>
+          <td class="num muted">{{ item.team.vrs_rank or '–' }}</td>
+          <td class="num">{{ item.rating | round | int }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="muted">Ei dataa vielä. Aja: python manage.py init</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>Viimeisimmät kokoonpanomuutokset</h2>
+    <ul class="changes">
+      {% for c in changes %}
+      <li>
+        <span class="date">{{ c.date }}</span>
+        <a href="{{ url_for('players.player_detail', player_id=c.player_id) }}">{{ c.nickname }}</a>
+        <span class="tag {{ 'in' if c.kind == 'liittyi' else 'out' }}">{{ c.kind }}</span>
+        <a href="{{ url_for('teams.team_detail', team_id=c.team_id) }}">{{ c.team_name }}</a>
+      </li>
+      {% else %}
+      <li class="muted">Ei muutoksia.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

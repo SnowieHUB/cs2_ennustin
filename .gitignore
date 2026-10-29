@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+data/cs2.db
+.pytest_cache/
+data/.liquipedia_last_fetch
+data/vrs_repo/
+data/model.json

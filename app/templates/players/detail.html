@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ player.nickname }} – CS2 Ennustin{% endblock %}
+
+{% block content %}
+<h1>{{ player.nickname }}</h1>
+<p class="muted">{{ player.country | flag }} {{ player.real_name or '' }}</p>
+
+<section class="card">
+  <h2>Urahistoria</h2>
+  <table>
+    <thead><tr><th>Joukkue</th><th>Rooli</th><th>Alkoi</th><th>Päättyi</th></tr></thead>
+    <tbody>
+      {% for h in history %}
+      <tr>
+        <td><a href="{{ url_for('teams.team_detail', team_id=h.team_id) }}">{{ h.team_name }}</a></td>
+        <td>{{ h.role or '–' }}</td>
+        <td>{{ h.start_date }}</td>
+        <td>{{ h.end_date or 'nykyinen' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

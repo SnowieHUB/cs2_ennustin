@@ -1,0 +1,132 @@
+/*
+  Sivuston tyylit.
+  Värit on määritelty muuttujiksi (--nimi) :root-lohkoon, joten koko
+  sivuston värimaailman voi vaihtaa muuttamalla vain näitä rivejä.
+*/
+:root {
+  --bg: #0f1216;
+  --card: #181d23;
+  --border: #2a313a;
+  --text: #e6e9ed;
+  --muted: #8a94a0;
+  --accent: #f5a524;   /* CS-henkinen oranssi */
+  --win: #3fb950;
+  --loss: #f85149;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* --- Yläpalkki --- */
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.logo { font-weight: 700; font-size: 1.2rem; color: var(--text); }
+nav a { margin-left: 18px; color: var(--muted); }
+nav a:hover { color: var(--text); }
+
+main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+/* --- Kortit ja ruudukko --- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+/* auto-fit: kortit asettuvat rinnakkain leveällä näytöllä ja allekkain puhelimessa */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+h2 { font-size: 1.05rem; margin-top: 0; }
+
+/* --- Taulukot --- */
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.muted { color: var(--muted); }
+.date { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+
+/* --- Merkit (liittyi/lähti, voitto/häviö) --- */
+.tag { padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; }
+.tag.in  { background: color-mix(in srgb, var(--win) 20%, transparent);  color: var(--win); }
+.tag.out { background: color-mix(in srgb, var(--loss) 20%, transparent); color: var(--loss); }
+
+.changes { list-style: none; padding: 0; margin: 0; }
+.changes li { padding: 6px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* --- Lomakkeet --- */
+input, select, button {
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+button { background: var(--accent); color: #111; border: none; cursor: pointer; font-weight: 600; }
+.search { display: flex; gap: 8px; margin-bottom: 16px; }
+.predict-form { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.vs { color: var(--muted); }
+.error { color: var(--loss); }
+
+/* --- Ennusteen tulos --- */
+.result { display: flex; flex-wrap: wrap; justify-content: space-between; }
+.side { text-align: center; flex: 1; }
+.big { font-size: 2.4rem; font-weight: 700; margin: 4px 0; }
+.bar { width: 100%; height: 10px; background: var(--loss); border-radius: 5px; overflow: hidden; margin-top: 12px; }
+.bar-a { height: 100%; background: var(--win); }
+
+/* --- Ottelukortit (tulevat ottelut ennusteineen) --- */
+.match-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.match { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.match-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 0.8rem; margin-bottom: 8px; }
+.match-meta .event { color: var(--muted); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.match-teams { display: flex; justify-content: space-between; gap: 8px; }
+.match .team { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.match .team.fav a { font-weight: 700; }
+.match .prob { font-variant-numeric: tabular-nums; color: var(--muted); }
+.match .team.fav .prob { color: var(--text); font-weight: 600; }
+.rank { color: var(--muted); font-size: 0.75rem; }
+
+/* --- Tulostaulukko --- */
+.score { text-align: center; font-weight: 700; white-space: nowrap; }
+.winner a { font-weight: 700; }
+td.event { font-size: 0.8rem; }
+
+/* --- Tier 1 / kaikki -valitsin --- */
+.toggle a { margin-right: 8px; padding: 4px 12px; border: 1px solid var(--border); border-radius: 14px; color: var(--muted); }
+.toggle a.active { background: var(--accent); color: #111; border-color: var(--accent); }
+h2 .more { font-size: 0.8rem; font-weight: 400; margin-left: 8px; }
+
+footer { max-width: 1100px; margin: 0 auto; padding: 16px; color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(--border); }
+
+/* Kapealla näytöllä taulukot vierivät sivusuunnassa omassa laatikossaan. */
+@media (max-width: 640px) {
+  table.card, section.card { overflow-x: auto; display: block; }
+  nav a { margin-left: 10px; }
+}
+.uncertain { margin: 8px 0 0; font-size: 0.75rem; color: var(--accent); }
+
+/* --- Sarjaennuste (Bo1/Bo3/Bo5) --- */
+.formats { display: grid; gap: 14px; margin: 12px 0; }
+.format-name { font-weight: 700; color: var(--accent); }
+.format-probs { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.format-probs .fav { font-weight: 700; }
+td.actual, span.actual { color: var(--accent); font-weight: 700; }
