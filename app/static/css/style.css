@@ -112,6 +112,21 @@ button { background: var(--accent); color: #111; border: none; cursor: pointer; 
 .winner a { font-weight: 700; }
 td.event { font-size: 0.8rem; }
 
+/* --- Tuloskortit (pelatut ottelut) ---
+   Grid jakaa rivin kolmeen osaan: 1fr | auto | 1fr. Reunasarakkeet ovat
+   yhtä leveitä, joten keskiosa on aina tarkalleen kortin keskellä. */
+.result-body { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; }
+.result-card .team.right { justify-content: flex-end; text-align: right; }
+.result-card .team.winner a { font-weight: 700; }
+.result-center { text-align: center; }
+.result-score { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.result-probs { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* margin: auto vasemmalle ja oikealle keskittää kapeamman palkin. */
+.result-bar { width: 60%; margin: 8px auto 0; height: 6px; }
+.verdict { margin: 6px 0 0; text-align: center; font-size: 0.8rem; }
+.verdict.hit { color: var(--win); }
+.verdict.miss { color: var(--loss); }
+
 /* --- Tier 1 / kaikki -valitsin --- */
 .toggle a { margin-right: 8px; padding: 4px 12px; border: 1px solid var(--border); border-radius: 14px; color: var(--muted); }
 .toggle a.active { background: var(--accent); color: #111; border-color: var(--accent); }

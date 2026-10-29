@@ -10,7 +10,7 @@ from flask import Blueprint, render_template
 from app import config
 from app.database.db import get_db
 from app.matches import repository as matches_repo
-from app.predictions.service import add_predictions, get_rankings
+from app.predictions.service import add_predictions, add_result_predictions, get_rankings
 from app.roster.repository import get_recent_changes
 
 bp = Blueprint("main", __name__)
@@ -28,7 +28,7 @@ def index():
         "index.html",
         live=add_predictions(conn, live),
         upcoming=add_predictions(conn, upcoming),
-        results=matches_repo.get_recent_results(conn, max_rank=tier1, limit=8),
+        results=add_result_predictions(conn, matches_repo.get_recent_results(conn, max_rank=tier1, limit=8)),
         rankings=get_rankings(conn)[:20],  # [:20] = vain 20 ensimmäistä
         changes=get_recent_changes(conn, limit=12),
     )

@@ -26,6 +26,8 @@ class RatingState:
     engine: EloEngine
     vrs_points: dict[int, float]
     default_vrs: float
+    # Pelattujen otteluiden ennusteet ennen ottelua: {ottelun id: joukkueen 1 todennäköisyys}.
+    pre_match: dict[int, float]
 
     def strength(self, team_id: int, on_date: str) -> float:
         """Joukkueen vahvuus tiettynä päivänä."""
@@ -54,14 +56,21 @@ def get_state(conn) -> RatingState:
 
     model = Model.load()
     engine = EloEngine(model.elo)
-    for m in matches_repo.get_all_completed(conn):
-        engine.process(m["team1_id"], m["team2_id"], match_score(m["team1_id"], m["winner_id"]), m["played_at"])
-
     vrs_points = {
         row["id"]: row["vrs_points"]
         for row in conn.execute("SELECT id, vrs_points FROM teams WHERE vrs_points IS NOT NULL")
     }
-    state = RatingState(model, engine, vrs_points, min(vrs_points.values(), default=0.0))
+    state = RatingState(model, engine, vrs_points, min(vrs_points.values(), default=0.0), {})
+
+    for m in matches_repo.get_all_completed(conn):
+        # Ennuste lasketaan ENNEN kuin tulos päivittää luvut. Muuten ennuste
+        # "tietäisi" jo lopputuloksen ja näyttäisi todellista paremmalta.
+        # (VRS-pisteet ovat viimeisimmät, mutta niiden paino mallissa on pieni.)
+        state.pre_match[m["id"]] = model.win_probability(
+            state.strength(m["team1_id"], m["played_at"]),
+            state.strength(m["team2_id"], m["played_at"]),
+        )
+        engine.process(m["team1_id"], m["team2_id"], match_score(m["team1_id"], m["winner_id"]), m["played_at"])
     _cache.update(key=key, state=state)
     return state
 
@@ -119,6 +128,31 @@ def add_predictions(conn, matches) -> list[dict]:
             state.engine.matches_played[match["team1_id"]],
             state.engine.matches_played[match["team2_id"]],
         ) < 10
+        result.append(item)
+    return result
+
+
+def add_result_predictions(conn, matches) -> list[dict]:
+    """Lisää pelattuihin otteluihin ennusteen, joka laskettiin ennen ottelua.
+
+    Lisää kentät prob1, prob2 ja correct (osuiko ennuste: True/False).
+    Jos ennustetta ei ole (esim. tasapeli tai uusi ottelu), prob1 on None.
+    """
+    state = get_state(conn)
+    result = []
+    for match in matches:
+        item = dict(match)
+        item["prob1"] = item["prob2"] = item["correct"] = None
+        model_prob = state.pre_match.get(match["id"])
+        if model_prob is not None:
+            formats = all_formats(model_prob)
+            best_of = match["best_of"] if match["best_of"] in formats else MODEL_FORMAT
+            item["prob1"] = formats[best_of]
+            item["prob2"] = 1.0 - item["prob1"]
+            if match["winner_id"] is not None and item["prob1"] != 0.5:
+                # Osui, jos suosikki (yli 50 %) voitti.
+                team1_favourite = item["prob1"] > 0.5
+                item["correct"] = team1_favourite == (match["winner_id"] == match["team1_id"])
         result.append(item)
     return result
 

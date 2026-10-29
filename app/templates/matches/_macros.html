@@ -59,13 +59,38 @@
   {%- else -%}–{%- endif -%}
 {%- endmacro %}
 
-{# Yksi pelattu ottelu tulostaulukon rivinä. Voittaja lihavoidaan. #}
-{% macro result_row(m) %}
-<tr>
-  <td class="date">{{ m.played_at | local_time }}</td>
-  <td class="{{ 'winner' if m.winner_id == m.team1_id }}">{{ team_link(m.team1_id, m.team1_name, m.team1_rank) }}</td>
-  <td class="score">{{ score(m) }}</td>
-  <td class="{{ 'winner' if m.winner_id == m.team2_id }}">{{ team_link(m.team2_id, m.team2_name, m.team2_rank) }}</td>
-  <td class="muted event">{{ m.event or '' }}</td>
-</tr>
+{# Yksi pelattu ottelu omana korttinaan.
+   m on add_result_predictions()-funktion palauttama sanakirja.
+   Keskellä päällekkäin: tulos, ennen ottelua laskettu ennuste, palkki ja osuiko ennuste.
+   Voittaja lihavoidaan. #}
+{% macro result_card(m) %}
+<div class="match result-card">
+  <div class="match-meta">
+    <span class="date">{{ m.played_at | local_time }}</span>
+    <span class="event">{{ m.event or '' }}{% if m.best_of %} · Bo{{ m.best_of }}{% endif %}</span>
+  </div>
+  {# Kolme saraketta: joukkue 1 | keskiosa | joukkue 2 #}
+  <div class="result-body">
+    <div class="team {{ 'winner' if m.winner_id == m.team1_id }}">
+      {{ team_link(m.team1_id, m.team1_name, m.team1_rank) }}
+    </div>
+    <div class="result-center">
+      <div class="result-score">{{ score(m) }}</div>
+      {% if m.prob1 is not none %}
+        <div class="result-probs">{{ m.prob1 | percent }} – {{ m.prob2 | percent }}</div>
+      {% endif %}
+    </div>
+    <div class="team right {{ 'winner' if m.winner_id == m.team2_id }}">
+      {{ team_link(m.team2_id, m.team2_name, m.team2_rank) }}
+    </div>
+  </div>
+  {% if m.prob1 is not none %}
+    <div class="bar result-bar"><div class="bar-a" style="width: {{ m.prob1 * 100 }}%"></div></div>
+  {% endif %}
+  {% if m.correct is true %}
+    <p class="verdict hit">✓ Ennuste osui</p>
+  {% elif m.correct is false %}
+    <p class="verdict miss">✗ Ennuste meni ohi</p>
+  {% endif %}
+</div>
 {% endmacro %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "matches/_macros.html" import upcoming_card, team_link, result_row %}
+{% from "matches/_macros.html" import upcoming_card, team_link, result_card %}
 
 {% block content %}
 {# Käynnissä olevat näytetään vain, jos niitä on. #}
@@ -25,11 +25,9 @@
 
 <section>
   <h2>Viimeisimmät tulokset <a class="more" href="{{ url_for('matches.match_list') }}">kaikki tulokset →</a></h2>
-  <table class="card">
-    <tbody>
-      {% for m in results %}{{ result_row(m) }}{% else %}<tr><td class="muted">Ei tuloksia.</td></tr>{% endfor %}
-    </tbody>
-  </table>
+  <div class="match-grid">
+    {% for m in results %}{{ result_card(m) }}{% else %}<p class="muted">Ei tuloksia.</p>{% endfor %}
+  </div>
 </section>
 
 <div class="grid">

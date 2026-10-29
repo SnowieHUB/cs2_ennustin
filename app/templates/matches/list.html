@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "matches/_macros.html" import upcoming_card, result_row %}
+{% from "matches/_macros.html" import upcoming_card, result_card %}
 {% block title %}Ottelut – CS2 Ennustin{% endblock %}
 
 {% block content %}
@@ -28,13 +28,11 @@
 </div>
 
 <h2>Viimeisimmät tulokset</h2>
-<table class="card">
-  <tbody>
-    {% for m in results %}
-      {{ result_row(m) }}
-    {% else %}
-      <tr><td class="muted">Ei tuloksia.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div class="match-grid">
+  {% for m in results %}
+    {{ result_card(m) }}
+  {% else %}
+    <p class="muted">Ei tuloksia.</p>
+  {% endfor %}
+</div>
 {% endblock %}
