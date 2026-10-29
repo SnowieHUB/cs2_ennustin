@@ -3,6 +3,7 @@ Otteluiden tietokantahaut: tulevat ottelut, pelatut tulokset ja tallennus.
 """
 
 import sqlite3
+from datetime import datetime, timezone
 
 # Yhteinen SELECT-alku, jota käytetään useassa kyselyssä. Joukkueiden tiedot
 # liitetään kahdesti (t1 ja t2), koska ottelussa on kaksi joukkuetta.
@@ -16,15 +17,17 @@ _MATCH_SELECT = """
 """
 
 
-def get_upcoming(conn, max_rank: int | None = None, team_id: int | None = None, limit: int = 50):
-    """Tulevat ottelut aikajärjestyksessä (lähin ensin).
+def now_utc() -> str:
+    """Nykyhetki samassa muodossa kuin played_at (UTC), esim. "2026-10-29 15:05"."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
 
-    max_rank: jos annettu, näytetään vain ottelut, joissa ainakin toinen
-              joukkue on VRS-rankingissa tällä sijalla tai paremmalla (tier 1 -suodatin).
-    team_id:  jos annettu, näytetään vain tämän joukkueen ottelut.
+
+def _filters(max_rank, team_id) -> tuple[list[str], list]:
+    """Yhteiset vapaaehtoiset suodattimet: tier 1 -raja ja yksittäinen joukkue.
+
+    Kysely rakennetaan paloista: ehdot lisätään vain, jos suodatin on käytössä.
     """
-    # Kysely rakennetaan paloista: ehdot lisätään vain, jos suodatin on käytössä.
-    conditions = ["m.status = 'upcoming'"]
+    conditions: list[str] = []
     params: list = []
     if max_rank is not None:
         conditions.append("(t1.vrs_rank <= ? OR t2.vrs_rank <= ?)")
@@ -32,29 +35,52 @@ def get_upcoming(conn, max_rank: int | None = None, team_id: int | None = None, 
     if team_id is not None:
         conditions.append("(m.team1_id = ? OR m.team2_id = ?)")
         params += [team_id, team_id]
+    return conditions, params
 
+
+def get_upcoming(conn, max_rank: int | None = None, team_id: int | None = None, limit: int = 50):
+    """Tulevat ottelut, joiden aloitusaika on vielä edessä (lähin ensin).
+
+    max_rank: jos annettu, näytetään vain ottelut, joissa ainakin toinen
+              joukkue on VRS-rankingissa tällä sijalla tai paremmalla (tier 1 -suodatin).
+    team_id:  jos annettu, näytetään vain tämän joukkueen ottelut.
+    """
+    conditions, params = _filters(max_rank, team_id)
+    conditions = ["m.status = 'upcoming'", "m.played_at > ?", *conditions]
     sql = _MATCH_SELECT + " WHERE " + " AND ".join(conditions) + " ORDER BY m.played_at LIMIT ?"
-    return conn.execute(sql, (*params, limit)).fetchall()
+    return conn.execute(sql, (now_utc(), *params, limit)).fetchall()
+
+
+def get_live(conn, max_rank: int | None = None, team_id: int | None = None):
+    """Käynnissä olevat ottelut.
+
+    Mukaan tulevat:
+      - ottelut, jotka Liquipedia on merkinnyt käynnissä oleviksi (status 'live')
+      - ottelut, joiden aloitusaika on jo mennyt, mutta joista ei vielä ole tulosta.
+        Ne ovat todennäköisesti käynnissä, vaikka päivitystä ei ole ajettu.
+    Kun tulos tulee seuraavassa päivityksessä, ottelu siirtyy tuloksiin.
+    """
+    conditions, params = _filters(max_rank, team_id)
+    conditions = ["(m.status = 'live' OR (m.status = 'upcoming' AND m.played_at <= ?))", *conditions]
+    sql = _MATCH_SELECT + " WHERE " + " AND ".join(conditions) + " ORDER BY m.played_at"
+    return conn.execute(sql, (now_utc(), *params)).fetchall()
 
 
 def get_recent_results(conn, max_rank: int | None = None, limit: int = 20):
     """Viimeksi pelatut ottelut (uusin ensin)."""
-    conditions = ["m.status = 'completed'"]
-    params: list = []
-    if max_rank is not None:
-        conditions.append("(t1.vrs_rank <= ? OR t2.vrs_rank <= ?)")
-        params += [max_rank, max_rank]
+    conditions, params = _filters(max_rank, None)
+    conditions = ["m.status = 'completed'", *conditions]
     sql = _MATCH_SELECT + " WHERE " + " AND ".join(conditions) + " ORDER BY m.played_at DESC LIMIT ?"
     return conn.execute(sql, (*params, limit)).fetchall()
 
 
 def delete_upcoming(conn) -> None:
-    """Poistaa kaikki tulevat ottelut.
+    """Poistaa kaikki tulevat ja käynnissä olevat ottelut.
 
     Synkronointi hakee tulevat ottelut joka kerta kokonaan uudelleen, koska
     aikataulut muuttuvat ja TBD-paikat täyttyvät turnauksen edetessä.
     """
-    conn.execute("DELETE FROM matches WHERE status = 'upcoming'")
+    conn.execute("DELETE FROM matches WHERE status IN ('upcoming', 'live')")
 
 
 def save_match(conn, played_at, event, best_of, status, team1_id, team2_id,

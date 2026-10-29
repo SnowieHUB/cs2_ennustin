@@ -34,7 +34,9 @@ def sync_liquipedia_matches(conn) -> tuple[int, int]:
     upcoming = 0
     new_results = 0
     try:
-        # Tulevat ottelut haetaan joka kerta kokonaan uudelleen.
+        # Tulevat ja käynnissä olevat ottelut haetaan joka kerta kokonaan uudelleen.
+        # Kun käynnissä oleva ottelu loppuu, se on seuraavalla haulla pelattujen
+        # listalla ja tallentuu tulokseksi.
         matches_repo.delete_upcoming(conn)
         for m in matches:
             team1_id = _resolve_team(conn, m["team1"], m["team1_short"], m["team1_page"])
@@ -43,7 +45,7 @@ def sync_liquipedia_matches(conn) -> tuple[int, int]:
                 conn, m["played_at"], m["event"], m["best_of"], m["status"],
                 team1_id, team2_id, m["score1"], m["score2"], source="liquipedia",
             )
-            if m["status"] == "upcoming":
+            if m["status"] in ("upcoming", "live"):
                 upcoming += 1
             elif is_new:
                 new_results += 1

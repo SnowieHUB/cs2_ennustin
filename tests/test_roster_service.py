@@ -88,3 +88,22 @@ def test_same_match_from_two_sources_saved_once(conn):
     assert matches_repo.save_match(conn, "2026-10-27", None, None, "completed", a, b, winner_id=a, source="vrs")
     assert not matches_repo.save_match(conn, "2026-10-27 17:50", "X", 3, "completed", b, a, 0, 2, source="liquipedia")
     assert len(matches_repo.get_all_completed(conn)) == 1
+
+
+def test_started_match_moves_from_upcoming_to_live(conn):
+    from datetime import datetime, timedelta, timezone
+
+    from app.matches import repository as matches_repo
+
+    a = teams_repo.get_or_create_team(conn, "A")
+    b = teams_repo.get_or_create_team(conn, "B")
+    fmt = "%Y-%m-%d %H:%M"
+    now = datetime.now(timezone.utc)
+    started = (now - timedelta(minutes=30)).strftime(fmt)
+    later = (now + timedelta(hours=5)).strftime(fmt)
+    matches_repo.save_match(conn, started, None, 3, "upcoming", a, b)
+    matches_repo.save_match(conn, later, None, 3, "upcoming", b, a)
+
+    # Alkanut ottelu on "menossa", vaikka Liquipedia ei olisi vielä merkinnyt sitä.
+    assert [m["played_at"] for m in matches_repo.get_live(conn)] == [started]
+    assert [m["played_at"] for m in matches_repo.get_upcoming(conn)] == [later]

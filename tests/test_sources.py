@@ -136,3 +136,14 @@ def test_flag_filter():
     assert flag("fi") == "🇫🇮"
     assert flag("uk") == "🇬🇧"
     assert flag(None) == ""
+
+
+def test_match_with_score_in_upcoming_section_is_live():
+    page = (
+        "type=upcoming"
+        + _match_html(1793268900, ("paiN Gaming", "paiN"), ("Naocopulas", "naocop"), scores=(1, 1))
+        + "type=recent"
+    )
+    (match,) = parse_matches(page)
+    assert match["status"] == "live"
+    assert (match["score1"], match["score2"]) == (1, 1)

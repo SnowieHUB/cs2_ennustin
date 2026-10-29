@@ -11,11 +11,22 @@
   {% if rank %}<span class="rank">#{{ rank }}</span>{% endif %}
 {% endmacro %}
 
-{# Yksi tuleva ottelu ennusteineen. m on add_predictions()-funktion palauttama sanakirja. #}
-{% macro upcoming_card(m) %}
-<div class="match">
+{# Yksi tuleva tai käynnissä oleva ottelu ennusteineen.
+   m on add_predictions()-funktion palauttama sanakirja.
+   live=True: näytetään LIVE-merkki ja karttatilanne (jos se tiedetään). #}
+{% macro upcoming_card(m, live=False) %}
+<div class="match {{ 'is-live' if live }}">
   <div class="match-meta">
-    <span class="date">{{ m.played_at | local_time }}</span>
+    {% if live %}
+      <span class="live-badge">LIVE</span>
+      {% if m.status == 'live' %}
+        <span class="live-score">{{ m.team1_score }} : {{ m.team2_score }}</span>
+      {% else %}
+        <span class="date">alkoi {{ m.played_at | local_time }}</span>
+      {% endif %}
+    {% else %}
+      <span class="date">{{ m.played_at | local_time }}</span>
+    {% endif %}
     <span class="event">{{ m.event or '' }}{% if m.best_of %} · Bo{{ m.best_of }}{% endif %}</span>
   </div>
   <div class="match-teams">
@@ -31,6 +42,9 @@
   </div>
   {# Palkki: vihreän osan leveys = joukkueen 1 voittotodennäköisyys. #}
   <div class="bar"><div class="bar-a" style="width: {{ m.prob1 * 100 }}%"></div></div>
+  {% if live %}
+    <p class="muted small">Ennuste on tehty ennen ottelun alkua.</p>
+  {% endif %}
   {% if m.uncertain %}
     <p class="uncertain">Epävarma: toisella joukkueella on vähän otteluita historiassa.</p>
   {% endif %}

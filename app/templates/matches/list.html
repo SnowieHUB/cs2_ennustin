@@ -11,6 +11,13 @@
   <a href="{{ url_for('matches.match_list', all=1) }}" class="{{ 'active' if show_all }}">Kaikki</a>
 </p>
 
+{% if live %}
+<h2>Menossa nyt</h2>
+<div class="match-grid">
+  {% for m in live %}{{ upcoming_card(m, live=True) }}{% endfor %}
+</div>
+{% endif %}
+
 <h2>Tulevat ottelut</h2>
 <div class="match-grid">
   {% for m in upcoming %}

@@ -19,12 +19,16 @@ bp = Blueprint("main", __name__)
 @bp.route("/")
 def index():
     conn = get_db()
-    upcoming = matches_repo.get_upcoming(conn, max_rank=config.TIER1_MAX_RANK, limit=8)
+    tier1 = config.TIER1_MAX_RANK
+    live = matches_repo.get_live(conn, max_rank=tier1)
+    upcoming = matches_repo.get_upcoming(conn, max_rank=tier1, limit=8)
 
     # render_template täyttää HTML-pohjan (templates/index.html) annetuilla tiedoilla.
     return render_template(
         "index.html",
+        live=add_predictions(conn, live),
         upcoming=add_predictions(conn, upcoming),
+        results=matches_repo.get_recent_results(conn, max_rank=tier1, limit=8),
         rankings=get_rankings(conn)[:20],  # [:20] = vain 20 ensimmäistä
         changes=get_recent_changes(conn, limit=12),
     )

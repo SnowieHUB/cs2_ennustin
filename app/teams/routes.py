@@ -35,5 +35,6 @@ def team_detail(team_id: int):
         roster=teams_repo.get_current_roster(conn, team_id),
         former=teams_repo.get_former_players(conn, team_id),
         matches=teams_repo.get_team_matches(conn, team_id),
+        live=add_predictions(conn, matches_repo.get_live(conn, team_id=team_id)),
         upcoming=add_predictions(conn, matches_repo.get_upcoming(conn, team_id=team_id)),
     )

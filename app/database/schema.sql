@@ -52,8 +52,8 @@ CREATE TABLE IF NOT EXISTS roster_history (
 CREATE INDEX IF NOT EXISTS idx_roster_team   ON roster_history(team_id);
 CREATE INDEX IF NOT EXISTS idx_roster_player ON roster_history(player_id);
 
--- Ottelut: sekä tulevat (status = 'upcoming') että pelatut (status = 'completed').
--- Tulevilla otteluilla tulokset (team1_score, team2_score) ovat NULL.
+-- Ottelut: tulevat (status = 'upcoming'), käynnissä olevat ('live') ja pelatut ('completed').
+-- Tulevilla otteluilla tulokset ovat NULL. Käynnissä olevilla tulos on senhetkinen karttatilanne.
 CREATE TABLE IF NOT EXISTS matches (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     played_at   TEXT NOT NULL,      -- UTC-aika, esim. 2026-10-29 10:15

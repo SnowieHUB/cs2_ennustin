@@ -130,3 +130,9 @@ footer { max-width: 1100px; margin: 0 auto; padding: 16px; color: var(--muted); 
 .format-probs { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
 .format-probs .fav { font-weight: 700; }
 td.actual, span.actual { color: var(--accent); font-weight: 700; }
+
+/* --- Käynnissä olevat ottelut --- */
+.match.is-live { border-color: var(--loss); }
+.live-badge { background: var(--loss); color: #fff; font-weight: 700; font-size: 0.7rem; padding: 1px 8px; border-radius: 10px; letter-spacing: 0.05em; }
+.live-score { font-weight: 700; font-variant-numeric: tabular-nums; }
+.small { font-size: 0.75rem; margin: 6px 0 0; }

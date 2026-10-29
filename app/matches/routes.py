@@ -1,6 +1,6 @@
 """
 Otteluiden sivu:
-  /matches/            tulevat ottelut ennusteineen ja viimeisimmät tulokset
+  /matches/            käynnissä olevat ja tulevat ottelut ennusteineen sekä viimeisimmät tulokset
   /matches/?all=1      myös muut kuin tier 1 -ottelut
 """
 
@@ -23,6 +23,7 @@ def match_list():
 
     return render_template(
         "matches/list.html",
+        live=add_predictions(conn, matches_repo.get_live(conn, max_rank=max_rank)),
         upcoming=add_predictions(conn, matches_repo.get_upcoming(conn, max_rank=max_rank)),
         results=matches_repo.get_recent_results(conn, max_rank=max_rank, limit=30),
         show_all=show_all,

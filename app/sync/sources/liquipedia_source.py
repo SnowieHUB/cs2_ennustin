@@ -78,7 +78,10 @@ def parse_matches(page_html: str) -> list[dict]:
     """Jäsentää sivun HTML:n listaksi otteluita.
 
     Sivulla on kaksi osaa: ensin tulevat ottelut ja sitten pelatut
-    ("type=recent"). Osan perusteella päätellään ottelun tila.
+    ("type=recent"). Ottelun tila päätellään näin:
+      - pelattujen osassa                    -> "completed" (tulos)
+      - tulevien osassa ja tulos näkyy       -> "live" (käynnissä, esim. 1 : 1)
+      - tulevien osassa ja tuloksen tilalla "vs" -> "upcoming"
     Ottelut, joissa toinen joukkue on vielä TBD (ei tiedossa), ohitetaan.
     """
     recent_start = page_html.find("type=recent")
@@ -134,4 +137,7 @@ def _parse_block(block: str, is_completed: bool) -> dict | None:
         result.update(status="completed", score1=int(scores[0]), score2=int(scores[1]))
     elif is_completed:
         return None  # pelattu, mutta tulos puuttuu: ohitetaan
+    elif len(scores) >= 2:
+        # Tulevien listalla, mutta tulos näkyy jo: ottelu on käynnissä.
+        result.update(status="live", score1=int(scores[0]), score2=int(scores[1]))
     return result
