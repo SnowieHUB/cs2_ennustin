@@ -16,23 +16,64 @@ from app.matches import repository as matches_repo
 from app.predictions.series import FORMATS
 from app.predictions.service import add_predictions, get_model_metrics, predict_match, predict_series
 from app.teams import repository as teams_repo
+from app.teams.names import SHORT_NAMES, name_key
 
 bp = Blueprint("predictions", __name__)
 
 
 def _ranked_teams(conn):
-    """Valikon joukkueet: vain VRS-listan joukkueet (historiassa on noin 2 000, mikä olisi liikaa)."""
-    return [t for t in teams_repo.get_all_teams(conn) if t["vrs_rank"] is not None]
+    """Valikon joukkueet aakkosjärjestyksessä.
 
-
-def _selected_teams():
-    """Lukee valitut joukkueet osoitteesta. Palauttaa (a, b, virheilmoitus tai None).
-
-    type=int muuttaa arvon numeroksi. Jos arvo puuttuu tai on virheellinen, tulos on None.
+    Vain VRS-listan joukkueet, koska historiassa on noin 2 000 joukkuetta, mikä olisi liikaa.
+    casefold() tekee vertailusta kirjainkoosta riippumattoman, joten "fnatic" ja "FURIA"
+    menevät oikeisiin kohtiin.
     """
-    team_a_id = request.args.get("team_a", type=int)
-    team_b_id = request.args.get("team_b", type=int)
-    error = "Valitse kaksi eri joukkuetta." if team_a_id and team_a_id == team_b_id else None
+    teams = [t for t in teams_repo.get_all_teams(conn) if t["vrs_rank"] is not None]
+    return sorted(teams, key=lambda t: t["name"].casefold())
+
+
+def _short_names(teams) -> list[tuple[str, str]]:
+    """Lyhenteet, joiden joukkue on valikossa: [("NAVI", "Natus Vincere"), ...]"""
+    names = {t["name"] for t in teams}
+    return [(short, full) for short, full in SHORT_NAMES.items() if full in names]
+
+
+def _find_team_id(value: str | None, teams) -> int | None:
+    """Muuttaa lomakkeen arvon joukkueen id:ksi.
+
+    Kelpaavat:
+      - joukkueen nimi, kirjainkoosta riippumatta ("vitality", "Team Vitality")
+      - lyhenne SHORT_NAMES-listalta ("NAVI")
+      - numero (vanhat linkit, esim. ?team_a=3)
+    """
+    if not value:
+        return None
+    value = value.strip()
+    if value.isdigit():
+        return int(value)
+    # Lyhenne -> koko nimi. Haku ilman kirjainkoon merkitystä.
+    shorts = {short.casefold(): full for short, full in SHORT_NAMES.items()}
+    value = shorts.get(value.casefold(), value)
+    # Verrataan nimiavaimilla (katso teams/names.py), jolloin myös "Team Vitality" löytyy.
+    for team in teams:
+        if team["name_key"] == name_key(value):
+            return team["id"]
+    return None
+
+
+def _selected_teams(teams):
+    """Lukee valitut joukkueet osoitteesta. Palauttaa (a, b, virheilmoitus tai None)."""
+    raw_a, raw_b = request.args.get("team_a"), request.args.get("team_b")
+    team_a_id, team_b_id = _find_team_id(raw_a, teams), _find_team_id(raw_b, teams)
+
+    # Kerätään kaikki nimet, joita ei löytynyt, jotta virheilmoitus kertoo ne kaikki.
+    not_found = [raw for raw, team_id in ((raw_a, team_a_id), (raw_b, team_b_id)) if raw and team_id is None]
+    if not_found:
+        error = "Joukkuetta ei löytynyt: " + ", ".join(not_found) + ". Valitse nimi listalta."
+    elif team_a_id and team_a_id == team_b_id:
+        error = "Valitse kaksi eri joukkuetta."
+    else:
+        error = None
     return team_a_id, team_b_id, error
 
 
@@ -40,7 +81,7 @@ def _selected_teams():
 def predict():
     conn = get_db()
     teams = _ranked_teams(conn)
-    team_a_id, team_b_id, error = _selected_teams()
+    team_a_id, team_b_id, error = _selected_teams(teams)
 
     result = None
     if team_a_id and team_b_id and not error:
@@ -51,6 +92,7 @@ def predict():
     return render_template(
         "predictions/predict.html",
         teams=teams,
+        short_names=_short_names(teams),
         team_a_id=team_a_id,
         team_b_id=team_b_id,
         result=result,
@@ -63,7 +105,7 @@ def predict():
 def series():
     conn = get_db()
     teams = _ranked_teams(conn)
-    team_a_id, team_b_id, error = _selected_teams()
+    team_a_id, team_b_id, error = _selected_teams(teams)
 
     result = None
     if team_a_id and team_b_id and not error:
@@ -77,6 +119,7 @@ def series():
     return render_template(
         "predictions/series.html",
         teams=teams,
+        short_names=_short_names(teams),
         team_a_id=team_a_id,
         team_b_id=team_b_id,
         result=result,

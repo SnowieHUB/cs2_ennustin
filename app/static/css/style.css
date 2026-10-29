@@ -27,17 +27,18 @@ a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* --- Yläpalkki --- */
+/* Logo ja linkit vasemmalla peräkkäin. */
 header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 12px 32px;
   padding: 14px 24px;
   border-bottom: 1px solid var(--border);
 }
 .logo { font-weight: 700; font-size: 1.2rem; color: var(--text); }
-nav a { margin-left: 18px; color: var(--muted); }
+nav { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+nav a { color: var(--muted); }
 nav a:hover { color: var(--text); }
 
 main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
@@ -83,6 +84,7 @@ input, select, button {
 button { background: var(--accent); color: #111; border: none; cursor: pointer; font-weight: 600; }
 .search { display: flex; gap: 8px; margin-bottom: 16px; }
 .predict-form { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.predict-form input[type="search"] { flex: 1 1 200px; min-width: 0; }
 .vs { color: var(--muted); }
 .error { color: var(--loss); }
 
@@ -120,7 +122,7 @@ footer { max-width: 1100px; margin: 0 auto; padding: 16px; color: var(--muted); 
 /* Kapealla näytöllä taulukot vierivät sivusuunnassa omassa laatikossaan. */
 @media (max-width: 640px) {
   table.card, section.card { overflow-x: auto; display: block; }
-  nav a { margin-left: 10px; }
+  nav { gap: 4px 12px; }
 }
 .uncertain { margin: 8px 0 0; font-size: 0.75rem; color: var(--accent); }
 

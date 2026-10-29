@@ -1,15 +1,24 @@
 {#
   Ennustesivujen yhteiset palat. Käyttö:
-    {% from "predictions/_macros.html" import team_select %}
+    {% from "predictions/_macros.html" import team_datalist, team_input %}
 #}
 
-{# Joukkueen alasvetovalikko. teams annetaan parametrina, koska tuodut makrot
-   eivät näe sivun muuttujia automaattisesti. #}
-{% macro team_select(name, teams, selected_id) %}
-<select name="{{ name }}" required>
-  <option value="">Valitse joukkue…</option>
-  {% for t in teams %}
-  <option value="{{ t.id }}" {{ 'selected' if t.id == selected_id }}>{{ t.name }}</option>
-  {% endfor %}
-</select>
+{# Lista joukkueiden nimistä hakukenttiä varten. Riittää, että se on sivulla kerran:
+   molemmat hakukentät käyttävät samaa listaa (list="team-names").
+   short_names: lyhenteet, esim. ("NAVI", "Natus Vincere"). label näyttää koko nimen ehdotuksen vieressä. #}
+{% macro team_datalist(teams, short_names=[]) %}
+<datalist id="team-names">
+  {% for t in teams %}<option value="{{ t.name }}">{% endfor %}
+  {% for short, full in short_names %}<option value="{{ short }}" label="{{ full }}">{% endfor %}
+</datalist>
+{% endmacro %}
+
+{# Hakukenttä joukkueelle. Kun kirjoitat, selain näyttää listasta vain osuvat nimet
+   (esim. "nav" -> Natus Vincere). Lomake lähettää joukkueen nimen.
+   teams ja selected_id tarvitaan, jotta valittu joukkue näkyy kentässä sivun latauksen jälkeen.
+   Tuodut makrot eivät näe sivun muuttujia automaattisesti, joten ne annetaan parametreina. #}
+{% macro team_input(name, teams, selected_id, placeholder="Hae joukkuetta…") %}
+{% set selected = teams | selectattr("id", "equalto", selected_id) | first %}
+<input type="search" name="{{ name }}" list="team-names" required autocomplete="off"
+       placeholder="{{ placeholder }}" value="{{ selected.name if selected else '' }}">
 {% endmacro %}

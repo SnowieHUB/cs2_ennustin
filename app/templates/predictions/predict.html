@@ -1,16 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Ennusta – CS2 Ennustin{% endblock %}
 
-{% from "predictions/_macros.html" import team_select %}
+{% from "predictions/_macros.html" import team_datalist, team_input %}
 
 {% block content %}
 <h1>Ennusta ottelu</h1>
 <p class="muted">Ennuste on Bo3-sarjalle. Bo1- ja Bo5-ennusteet: <a href="{{ url_for('predictions.series', team_a=team_a_id, team_b=team_b_id) if team_a_id and team_b_id else url_for('predictions.series') }}">Sarjaennuste</a>.</p>
 
 <form class="predict-form card" method="get">
-  {{ team_select("team_a", teams, team_a_id) }}
+  {{ team_datalist(teams, short_names) }}
+  {{ team_input("team_a", teams, team_a_id) }}
   <span class="vs">vs</span>
-  {{ team_select("team_b", teams, team_b_id) }}
+  {{ team_input("team_b", teams, team_b_id) }}
   <button type="submit">Ennusta</button>
 </form>
 

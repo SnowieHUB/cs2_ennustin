@@ -18,6 +18,18 @@ import re
 # Esimerkki:  "joku pitkä nimi esports": "Lyhyt Nimi",
 ALIASES: dict[str, str] = {}
 
+# Yleiset lyhenteet hakukenttää varten: lyhenne -> nimi VRS-listalla.
+# Esim. Valvella NAVI on "Natus Vincere", joten ilman tätä haku "NAVI" ei löytäisi mitään.
+# Lisää tähän omia suosikkejasi. Oikean puolen nimen pitää olla täsmälleen sama kuin VRS-listalla.
+SHORT_NAMES: dict[str, str] = {
+    "NAVI": "Natus Vincere",
+    "NiP": "Ninjas in Pyjamas",
+    "GL": "GamerLegion",
+    "EF": "Eternal Fire",
+    "VP": "Virtus.pro",
+    "TL": "Liquid",
+}
+
 # Sanat, jotka poistetaan nimestä, koska ne eivät erottele joukkueita toisistaan.
 FILLER_WORDS = {"team", "esports", "esport", "gaming", "club", "the"}
 
