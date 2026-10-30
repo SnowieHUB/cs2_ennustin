@@ -81,6 +81,13 @@ def get_live(conn, max_rank: int | None = None, team_id: int | None = None):
               AND substr(done.played_at, 1, 10) = substr(m.played_at, 1, 10)
               AND ((done.team1_id = m.team1_id AND done.team2_id = m.team2_id)
                 OR (done.team1_id = m.team2_id AND done.team2_id = m.team1_id)))""",
+        # Turnaussivun mukaan päättynyt sarja (12 h aikaikkuna, kuten maps/repository.py:ssä).
+        """NOT EXISTS (
+            SELECT 1 FROM series s
+            WHERE s.finished = 1
+              AND abs(julianday(s.played_at) - julianday(m.played_at)) < 0.5
+              AND ((s.team1_id = m.team1_id AND s.team2_id = m.team2_id)
+                OR (s.team1_id = m.team2_id AND s.team2_id = m.team1_id)))""",
         *conditions,
     ]
     sql = _MATCH_SELECT + " WHERE " + " AND ".join(conditions) + " ORDER BY m.played_at"
@@ -140,6 +147,28 @@ def save_match(conn, played_at, event, best_of, status, team1_id, team2_id,
             winner_id = team1_id
         elif team2_score > team1_score:
             winner_id = team2_id
+
+    if status == "completed":
+        # Sama ottelu voi olla jo tallennettu tulevana tai käynnissä olevana (sama aika
+        # ja joukkueet). Silloin INSERT OR IGNORE ohittaisi tuloksen, joten vanha rivi
+        # päivitetään päättyneeksi. Turnaus ja linkit säilyvät.
+        existing = conn.execute(
+            """
+            SELECT id, team1_id FROM matches
+            WHERE status IN ('upcoming', 'live') AND played_at = ?
+              AND ((team1_id = ? AND team2_id = ?) OR (team1_id = ? AND team2_id = ?))
+            """,
+            (played_at, team1_id, team2_id, team2_id, team1_id),
+        ).fetchone()
+        if existing:
+            score1, score2 = team1_score, team2_score
+            if existing["team1_id"] != team1_id:
+                score1, score2 = score2, score1  # joukkueet toisin päin
+            conn.execute(
+                "UPDATE matches SET status = 'completed', team1_score = ?, team2_score = ?, winner_id = ? WHERE id = ?",
+                (score1, score2, winner_id, existing["id"]),
+            )
+            return True
 
     cursor = conn.execute(
         """

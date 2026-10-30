@@ -29,12 +29,18 @@ def _team_id(conn, page: str) -> int:
     return team_id
 
 
-def _save_pages(conn, pages: dict[str, str], save_results: bool) -> tuple[int, int]:
+# Päättyneet ottelut, jotka ovat tätä tuoreempia, tallennetaan myös tuloksiksi.
+# Vanhempia ei, koska niiden tulokset tulevat jo Valven datasta.
+RESULT_DAYS = 3
+
+
+def _save_pages(conn, pages: dict[str, str]) -> tuple[int, int]:
     """Jäsentää sivut ja tallentaa ottelut. Palauttaa (sarjoja, karttoja).
 
-    save_results=True: päättyneet ottelut tallennetaan myös tuloksiksi (matches-tauluun).
+    Viime päivien päättyneet ottelut tallennetaan myös tuloksiksi (matches-tauluun).
     Näin ottelu siirtyy tuloksiin, vaikka Liquipedia:Matches-lista olisi jäänyt jälkeen.
     """
+    results_since = matches_repo.now_utc(hours_ago=RESULT_DAYS * 24)
     parsed = {title: source.parse_tournament_matches(text) for title, text in pages.items()}
 
     # Selvitetään uudet joukkuelyhenteet kerralla (yksi raskas pyyntö / 100 lyhennettä).
@@ -53,7 +59,7 @@ def _save_pages(conn, pages: dict[str, str], save_results: bool) -> tuple[int, i
             maps_repo.save_series(conn, title, m, team1_id, team2_id)
             series_count += 1
             map_count += len(m["maps"])
-            if save_results and m["finished"] and m["score1"] != m["score2"]:
+            if m["finished"] and m["score1"] != m["score2"] and m["played_at"] >= results_since:
                 matches_repo.save_match(
                     conn, m["played_at"], None, m["best_of"], "completed",
                     team1_id, team2_id, m["score1"], m["score2"], source="liquipedia",
@@ -75,7 +81,7 @@ def sync_maps(conn, days: int | None = None) -> str:
 
     titles = source.list_tournaments(since, until)
     pages = source.fetch_tournament_pages(titles)
-    series_count, map_count = _save_pages(conn, pages, save_results=False)
+    series_count, map_count = _save_pages(conn, pages)
     return f"Kartat: {len(titles)} turnausta ({days} pv), {series_count} ottelua, {map_count} karttaa."
 
 
@@ -86,5 +92,5 @@ def sync_live(conn) -> str:
     if not titles:
         return "Live: ei käynnissä olevia otteluita."
     pages = source.fetch_tournament_pages(titles)
-    series_count, _ = _save_pages(conn, pages, save_results=True)
+    series_count, _ = _save_pages(conn, pages)
     return f"Live: {len(live)} käynnissä, {len(titles)} turnaussivua, {series_count} ottelua päivitetty."

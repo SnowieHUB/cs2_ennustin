@@ -104,3 +104,31 @@ def test_team_map_stats_best_and_ban(conn):
     assert stats["ban"] == "Ancient"
     assert stats["maps"]["Mirage"]["rate"] == 0
     assert stats["maps"]["Dust II"]["round_diff"] == 80
+
+
+def test_finished_series_hides_live_match(conn):
+    from app.matches import repository as matches_repo
+
+    vit = teams_repo.get_or_create_team(conn, "Vitality")
+    nemiga = teams_repo.get_or_create_team(conn, "Nemiga")
+    started = matches_repo.now_utc(hours_ago=2)
+    matches_repo.save_match(conn, started, None, 3, "live", vit, nemiga, 0, 1)
+    assert len(matches_repo.get_live(conn)) == 1
+
+    [match] = parse_tournament_matches(WIKITEXT)
+    match.update(played_at=started, finished=True, score1=0, score2=2)
+    maps_repo.save_series(conn, "PGL/2026/Masters", match, vit, nemiga)
+    assert matches_repo.get_live(conn) == []
+
+
+def test_result_replaces_live_row(conn):
+    from app.matches import repository as matches_repo
+
+    a = teams_repo.get_or_create_team(conn, "A")
+    b = teams_repo.get_or_create_team(conn, "B")
+    started = matches_repo.now_utc(hours_ago=3)
+    matches_repo.save_match(conn, started, "PGL Masters", 3, "live", a, b, 0, 1)
+    # Tulos tulee joukkueet toisin päin: B voitti 2-0.
+    assert matches_repo.save_match(conn, started, None, 3, "completed", b, a, 2, 0) is True
+    rows = conn.execute("SELECT status, event, team1_score, team2_score, winner_id FROM matches").fetchall()
+    assert [tuple(r) for r in rows] == [("completed", "PGL Masters", 0, 2, b)]
