@@ -2,7 +2,7 @@
 Testit sarjaformaattien laskennalle (app/predictions/series.py).
 """
 
-from app.predictions.series import all_formats, map_probability, series_probability
+from app.predictions.series import all_formats, live_probability, map_probability, series_probability
 
 
 def test_bo1_is_one_map():
@@ -28,3 +28,16 @@ def test_longer_series_favours_favourite():
 def test_map_probability_is_inverse():
     for p in (0.1, 0.35, 0.5, 0.8, 0.97):
         assert abs(map_probability(series_probability(p, 3)) - p) < 1e-9
+
+
+def test_live_probability_after_first_map():
+    p = map_probability(0.60)
+    # 0-0 on sama kuin ennen ottelua.
+    assert abs(live_probability(p, 3, 0, 0) - 0.60) < 1e-9
+    # 1-0: tarvitaan enää yksi voitto kahdesta kartasta.
+    assert abs(live_probability(p, 3, 1, 0) - (1 - (1 - p) ** 2)) < 1e-9
+    # 0-1: pitää voittaa molemmat.
+    assert abs(live_probability(p, 3, 0, 1) - p * p) < 1e-9
+    # Ratkennut sarja.
+    assert live_probability(p, 3, 2, 1) == 1.0
+    assert live_probability(p, 5, 1, 3) == 0.0

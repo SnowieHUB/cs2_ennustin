@@ -16,7 +16,7 @@ from app.maps import repository as maps_repo
 from app.odds import repository as odds_repo
 from app.predictions.elo import EloEngine, match_score
 from app.predictions.model import MODEL_PATH, Model
-from app.predictions.series import MODEL_FORMAT, all_formats, map_probability
+from app.predictions.series import MODEL_FORMAT, all_formats, live_probability, map_probability
 from app.teams import repository as teams_repo
 
 
@@ -137,7 +137,8 @@ def add_predictions(conn, matches) -> list[dict]:
         item = dict(match)  # sqlite3.Row -> muokattava sanakirja
         s1 = state.strength(match["team1_id"], match["played_at"])
         s2 = state.strength(match["team2_id"], match["played_at"])
-        formats = all_formats(state.model.win_probability(s1, s2))
+        model_prob = state.model.win_probability(s1, s2)
+        formats = all_formats(model_prob)
         best_of = match["best_of"] if match["best_of"] in formats else MODEL_FORMAT
         item["formats"] = formats
         item["prob1"] = formats[best_of]
@@ -150,6 +151,13 @@ def add_predictions(conn, matches) -> list[dict]:
         item["odds"] = _odds_for(conn, match)
         # Turnaussivun tiedot: kartat, kierrokset ja HLTV-tunnus (None, jos ei löydy).
         item["series"] = maps_repo.find_series(conn, match["team1_id"], match["team2_id"], match["played_at"])
+        # Ennuste kesken ottelun: kun karttoja on voitettu, lasketaan uusi todennäköisyys
+        # (katso series.live_probability). None, jos ottelu ei ole vielä alkanut.
+        item["live_prob1"] = None
+        series = item["series"]
+        if series and (series["score1"] or series["score2"]):
+            p_map = map_probability(model_prob, MODEL_FORMAT)
+            item["live_prob1"] = live_probability(p_map, best_of, series["score1"], series["score2"])
         result.append(item)
     return result
 

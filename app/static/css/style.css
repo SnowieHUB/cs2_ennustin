@@ -178,6 +178,8 @@ p.stat-note { margin-bottom: 20px; }  /* p. tekee säännöstä tarkemman kuin .
 .map-list .won { font-weight: 700; color: var(--win); }
 .map-list li.current { color: var(--accent); }
 .details-heading { margin: 10px 0 0; }
+.live-now { margin: 8px 0 0; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.live-now .fav { font-weight: 700; color: var(--text); }
 
 /* --- Karttatilastot --- */
 .map-better { font-weight: 700; color: var(--win); }

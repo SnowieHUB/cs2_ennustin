@@ -47,6 +47,26 @@ def series_probability(p_map: float, best_of: int) -> float:
     )
 
 
+def live_probability(p_map: float, best_of: int, wins1: int, wins2: int) -> float:
+    """Sarjan voittotodennäköisyys kesken ottelun, kun karttatilanne on wins1–wins2.
+
+    Sama ajatus kuin series_probability, mutta voittoja tarvitaan enää vähemmän:
+    esim. Bo3 tilanteessa 1–0 joukkue 1 tarvitsee 1 voiton ja joukkue 2 kaksi.
+      - joukkue 1 tarvitsee a voittoa, joukkue 2 b voittoa
+      - joukkue 1 voittaa, jos se saa a voittoa ennen kuin vastustaja saa b:
+        sum_{j=0}^{b-1} comb(a − 1 + j, j) · p^a · q^j
+    Esim. p = 0.567 (sarjaennuste 60 %), tilanne 1–0: 1 − q² = 81 %.
+    """
+    wins_needed = (best_of + 1) // 2
+    need1, need2 = wins_needed - wins1, wins_needed - wins2
+    if need1 <= 0:
+        return 1.0  # joukkue 1 on jo voittanut
+    if need2 <= 0:
+        return 0.0
+    q = 1 - p_map
+    return sum(comb(need1 - 1 + j, j) * p_map**need1 * q**j for j in range(need2))
+
+
 def map_probability(series_prob: float, best_of: int = MODEL_FORMAT) -> float:
     """Käänteinen laskenta: sarjan todennäköisyydestä yhden kartan todennäköisyys.
 

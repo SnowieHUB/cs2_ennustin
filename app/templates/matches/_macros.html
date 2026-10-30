@@ -133,7 +133,18 @@
   <div class="bar"><div class="bar-a" style="width: {{ m.prob1 * 100 }}%"></div></div>
   {% if live %}
     {% if m.series and m.series.maps %}{{ map_list(m) }}{% endif %}
-    <p class="muted small">Ennuste on tehty ennen ottelun alkua.</p>
+    {# Päivittyvä ennuste karttatilanteen mukaan. Yllä oleva palkki on ennen ottelua tehty ennuste. #}
+    {% if m.live_prob1 is not none %}
+      <p class="live-now">
+        <span class="muted">Ennuste nyt:</span>
+        <span class="{{ 'fav' if m.live_prob1 > 0.5 }}">{{ m.team1_name }} {{ m.live_prob1 | percent }}</span>
+        –
+        <span class="{{ 'fav' if m.live_prob1 < 0.5 }}">{{ (1 - m.live_prob1) | percent }} {{ m.team2_name }}</span>
+      </p>
+      <p class="muted small">Yläpalkki on ennen ottelua tehty ennuste. "Ennuste nyt" huomioi voitetut kartat.</p>
+    {% else %}
+      <p class="muted small">Ennuste on tehty ennen ottelun alkua.</p>
+    {% endif %}
   {% endif %}
   {% if m.uncertain %}
     <p class="uncertain">Epävarma: toisella joukkueella on vähän otteluita historiassa.</p>
