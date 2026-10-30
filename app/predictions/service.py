@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.matches import repository as matches_repo
+from app.odds import repository as odds_repo
 from app.predictions.elo import EloEngine, match_score
 from app.predictions.model import MODEL_PATH, Model
 from app.predictions.series import MODEL_FORMAT, all_formats, map_probability
@@ -105,6 +106,23 @@ def team_rating(conn, team_id: int) -> float:
     return 0.0
 
 
+def _odds_for(conn, match) -> dict | None:
+    """Ottelun vedonlyöntikertoimet ja niistä laskettu todennäköisyys.
+
+    Kerroin 1.60 tarkoittaa, että 1 euron panoksella saa voitosta 1,60 euroa.
+    Todennäköisyys on 1 / kerroin, mutta vedonlyöntisivut ottavat oman osuutensa
+    (marginaali), joten kummankin joukkueen luvut yhteensä ovat yli 100 %.
+    Siksi ne jaetaan summalla, jolloin ne ovat yhteensä tasan 100 %.
+    """
+    odds = odds_repo.find_odds(conn, match["team1_id"], match["team2_id"], match["played_at"])
+    if odds is None:
+        return None
+    implied1, implied2 = 1 / odds["price1"], 1 / odds["price2"]
+    odds["fair1"] = implied1 / (implied1 + implied2)
+    odds["fair2"] = 1.0 - odds["fair1"]
+    return odds
+
+
 def add_predictions(conn, matches) -> list[dict]:
     """Lisää jokaiseen otteluun voittotodennäköisyydet.
 
@@ -128,6 +146,7 @@ def add_predictions(conn, matches) -> list[dict]:
             state.engine.matches_played[match["team1_id"]],
             state.engine.matches_played[match["team2_id"]],
         ) < 10
+        item["odds"] = _odds_for(conn, match)
         result.append(item)
     return result
 
@@ -153,6 +172,7 @@ def add_result_predictions(conn, matches) -> list[dict]:
                 # Osui, jos suosikki (yli 50 %) voitti.
                 team1_favourite = item["prob1"] > 0.5
                 item["correct"] = team1_favourite == (match["winner_id"] == match["team1_id"])
+        item["odds"] = _odds_for(conn, match)
         result.append(item)
     return result
 

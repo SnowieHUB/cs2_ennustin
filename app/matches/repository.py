@@ -97,7 +97,8 @@ def delete_upcoming(conn) -> None:
 
 
 def save_match(conn, played_at, event, best_of, status, team1_id, team2_id,
-               team1_score=None, team2_score=None, winner_id=None, source=None) -> bool:
+               team1_score=None, team2_score=None, winner_id=None, source=None,
+               event_url=None, stream_url=None) -> bool:
     """Tallentaa ottelun. Palauttaa True, jos ottelu oli uusi.
 
     Pelatuilla otteluilla tarkistetaan ensin, onko samojen joukkueiden ottelu
@@ -109,6 +110,9 @@ def save_match(conn, played_at, event, best_of, status, team1_id, team2_id,
     olemassa (katso UNIQUE schema.sql:ssä).
     """
     if status == "completed" and _completed_exists_on_day(conn, played_at[:10], team1_id, team2_id):
+        # Ottelu on jo tallennettu, mutta siitä voi puuttua linkki (esim. Valven datasta tullut).
+        if event_url:
+            _add_event_url(conn, played_at[:10], team1_id, team2_id, event_url)
         return False
 
     # Voittaja päätellään tuloksesta, jos sitä ei annettu erikseen.
@@ -122,13 +126,25 @@ def save_match(conn, played_at, event, best_of, status, team1_id, team2_id,
         """
         INSERT OR IGNORE INTO matches
             (played_at, event, best_of, status, team1_id, team2_id,
-             team1_score, team2_score, winner_id, source)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             team1_score, team2_score, winner_id, source, event_url, stream_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (played_at, event, best_of, status, team1_id, team2_id,
-         team1_score, team2_score, winner_id, source),
+         team1_score, team2_score, winner_id, source, event_url, stream_url),
     )
     return cursor.rowcount == 1
+
+
+def _add_event_url(conn, day: str, team1_id: int, team2_id: int, event_url: str) -> None:
+    """Lisää turnaussivun linkin jo tallennettuun otteluun, jos siltä puuttuu linkki."""
+    conn.execute(
+        """
+        UPDATE matches SET event_url = ?
+        WHERE status = 'completed' AND event_url IS NULL AND substr(played_at, 1, 10) = ?
+          AND ((team1_id = ? AND team2_id = ?) OR (team1_id = ? AND team2_id = ?))
+        """,
+        (event_url, day, team1_id, team2_id, team2_id, team1_id),
+    )
 
 
 def _completed_exists_on_day(conn, day: str, team1_id: int, team2_id: int) -> bool:

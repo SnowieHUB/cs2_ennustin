@@ -96,7 +96,9 @@ button { background: var(--accent); color: #111; border: none; cursor: pointer; 
 .bar-a { height: 100%; background: var(--win); }
 
 /* --- Ottelukortit (tulevat ottelut ennusteineen) --- */
-.match-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-bottom: 24px; }
+/* align-items: start = kortti on oman sisältönsä korkuinen. Oletuksena (stretch)
+   saman rivin kortit venyisivät, kun yhden lisätiedot avataan. */
+.match-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-bottom: 24px; align-items: start; }
 .match { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
 .match-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 0.8rem; margin-bottom: 8px; }
 .match-meta .event { color: var(--muted); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -126,6 +128,33 @@ td.event { font-size: 0.8rem; }
 .verdict { margin: 6px 0 0; text-align: center; font-size: 0.8rem; }
 .verdict.hit { color: var(--win); }
 .verdict.miss { color: var(--loss); }
+
+/* --- Avattavat lisätiedot ottelukortissa --- */
+.match-details { margin-top: 8px; border-top: 1px solid var(--border); padding-top: 6px; font-size: 0.85rem; }
+.match-details summary { cursor: pointer; color: var(--muted); }
+.match-details summary:hover { color: var(--text); }
+/* dl = määritelmälista: dt on otsikko (Päivä), dd sen arvo. Grid asettaa ne kahteen sarakkeeseen. */
+.match-details dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 8px 0 0; }
+.match-details dt { color: var(--muted); }
+.match-details dd { margin: 0; }
+.match-links { display: flex; gap: 16px; margin: 8px 0 0; }
+
+/* Kysymysmerkki renkaan sisällä ja sen avaama selitys. */
+.help { margin-top: 8px; }
+.help summary { list-style: none; cursor: pointer; color: var(--muted); font-size: 0.8rem; user-select: none; }
+.help summary::-webkit-details-marker { display: none; }   /* <details>-nuoli pois */
+.help-icon {
+  display: inline-block; width: 16px; height: 16px; line-height: 14px; text-align: center;
+  border: 1px solid var(--muted); border-radius: 50%;     /* 50 % = ympyrä */
+  font-size: 0.7rem; margin-right: 4px;
+}
+.help summary:hover, .help[open] summary { color: var(--accent); }
+.help summary:hover .help-icon, .help[open] .help-icon { border-color: var(--accent); }
+.help-text {
+  margin-top: 6px; padding: 2px 12px; font-size: 0.8rem;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+}
+.help-text p { margin: 8px 0; }
 
 /* --- Tier 1 / kaikki -valitsin --- */
 .toggle a { margin-right: 8px; padding: 4px 12px; border: 1px solid var(--border); border-radius: 14px; color: var(--muted); }

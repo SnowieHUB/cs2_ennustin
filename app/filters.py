@@ -14,14 +14,35 @@ _LOCAL_TZ = ZoneInfo(config.TIMEZONE)
 _WEEKDAYS = ["ma", "ti", "ke", "to", "pe", "la", "su"]
 
 
-def local_time(utc_text: str) -> str:
-    """Muuttaa UTC-ajan "2026-10-29 10:15" Suomen ajaksi muotoon "to 29.10. klo 12.15"."""
+def _to_local(utc_text: str) -> datetime | None:
+    """UTC-aika "2026-10-29 10:15" -> Suomen aika. None, jos muoto on tuntematon."""
     try:
         moment = datetime.strptime(utc_text, "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc)
     except (TypeError, ValueError):
+        return None
+    return moment.astimezone(_LOCAL_TZ)
+
+
+def local_time(utc_text: str) -> str:
+    """Muuttaa UTC-ajan "2026-10-29 10:15" Suomen ajaksi muotoon "to 29.10. klo 12.15"."""
+    local = _to_local(utc_text)
+    if local is None:
         return utc_text or ""  # pelkkä päivämäärä tai tuntematon muoto: näytetään sellaisenaan
-    local = moment.astimezone(_LOCAL_TZ)
     return f"{_WEEKDAYS[local.weekday()]} {local.day}.{local.month}. klo {local.hour}.{local.minute:02d}"
+
+
+def local_date(utc_text: str) -> str:
+    """UTC-aika -> Suomen päivämäärä vuoden kanssa, esim. "to 29.10.2026"."""
+    local = _to_local(utc_text)
+    if local is None:
+        return utc_text or ""
+    return f"{_WEEKDAYS[local.weekday()]} {local.day}.{local.month}.{local.year}"
+
+
+def local_clock(utc_text: str) -> str:
+    """UTC-aika -> Suomen kellonaika, esim. "12.15". Tyhjä, jos kellonaikaa ei tiedetä."""
+    local = _to_local(utc_text)
+    return f"{local.hour}.{local.minute:02d}" if local else ""
 
 
 def flag(code: str | None) -> str:

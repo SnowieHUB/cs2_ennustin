@@ -11,6 +11,64 @@
   {% if rank %}<span class="rank">#{{ rank }}</span>{% endif %}
 {% endmacro %}
 
+{# Avattava "Lisätiedot"-osio ottelukortin alareunaan.
+   <details> ja <summary> ovat HTML:n valmiita elementtejä: summary näkyy aina,
+   ja sitä klikkaamalla loput sisällöstä aukeaa. JavaScriptiä ei tarvita.
+   Liquipedian tapahtuman nimi on muotoa "Tesla Cup 2026 - Playoffs", joten
+   se jaetaan viimeisen " - " kohdalta tapahtumaan ja vaiheeseen. #}
+{% macro match_details(m) %}
+<details class="match-details">
+  <summary>Lisätiedot</summary>
+  {% set event = m.event or '' %}
+  {% if ' - ' in event %}
+    {% set event, stage = event.rsplit(' - ', 1) %}
+  {% endif %}
+  <dl>
+    <dt>Päivä</dt><dd>{{ m.played_at | local_date }}</dd>
+    {% if m.played_at | local_clock %}<dt>Kello</dt><dd>{{ m.played_at | local_clock }}</dd>{% endif %}
+    {% if event %}<dt>Tapahtuma</dt><dd>{{ event }}</dd>{% endif %}
+    {% if stage %}<dt>Vaihe</dt><dd>{{ stage }}</dd>{% endif %}
+    {% if m.best_of %}<dt>Formaatti</dt><dd>Bo{{ m.best_of }}</dd>{% endif %}
+    {# Kertoimet ovat ottelun järjestyksessä: ensin joukkue 1, sitten joukkue 2. #}
+    {% if m.odds %}
+      <dt>Kertoimet</dt>
+      <dd>{{ '%.2f' | format(m.odds.price1) }} – {{ '%.2f' | format(m.odds.price2) }}
+        <span class="muted">({{ m.odds.bookmaker | capitalize }})</span>
+        </dd>
+      <dt>Kertoimista</dt>
+      <dd>{{ m.odds.fair1 | percent }} – {{ m.odds.fair2 | percent }}</dd>
+      {% if m.prob1 is not none %}<dt>Malli</dt><dd>{{ m.prob1 | percent }} – {{ m.prob2 | percent }}</dd>{% endif %}
+    {% endif %}
+  </dl>
+  {# Kysymysmerkki, jota painamalla aukeaa selitys luvuille. Tämäkin on <details>,
+     joten se toimii ilman JavaScriptiä. #}
+  {% if m.odds %}
+  <details class="help">
+    <summary><span class="help-icon">?</span> Mitä luvut tarkoittavat?</summary>
+    <div class="help-text">
+      <p><strong>Kertoimet:</strong> vedonlyöntisivu Pinnaclen voittokertoimet.
+        Kerroin 2.00 tarkoittaa, että 10 € vedolla saa voitosta takaisin 20 €.
+        Mitä pienempi kerroin, sitä suurempi suosikki.</p>
+      <p><strong>Kertoimista:</strong> kertoimet muutettuna voittotodennäköisyydeksi
+        (1 / kerroin), josta on poistettu vedonlyöntisivun oma osuus.
+        Tämä on vedonlyöntimarkkinan arvio.</p>
+      <p><strong>Malli:</strong> tämän sivun oma ennuste, joka lasketaan
+        joukkueiden aiemmista tuloksista ja Valven rankingista.</p>
+      <p class="muted">Suuri ero mallin ja kertoimien välillä tarkoittaa yleensä,
+        että markkinalla on tietoa, jota mallilla ei ole (esim. kokoonpanomuutokset).</p>
+    </div>
+  </details>
+  {% endif %}
+  {% if m.event_url or m.stream_url %}
+  <p class="match-links">
+    {# target="_blank" avaa linkin uuteen välilehteen, rel="noopener" on turvallisuussyistä. #}
+    {% if m.event_url %}<a href="{{ m.event_url }}" target="_blank" rel="noopener">Turnaussivu ↗</a>{% endif %}
+    {% if m.stream_url %}<a href="{{ m.stream_url }}" target="_blank" rel="noopener">Striimi ↗</a>{% endif %}
+  </p>
+  {% endif %}
+</details>
+{% endmacro %}
+
 {# Yksi tuleva tai käynnissä oleva ottelu ennusteineen.
    m on add_predictions()-funktion palauttama sanakirja.
    live=True: näytetään LIVE-merkki ja karttatilanne (jos se tiedetään). #}
@@ -48,6 +106,7 @@
   {% if m.uncertain %}
     <p class="uncertain">Epävarma: toisella joukkueella on vähän otteluita historiassa.</p>
   {% endif %}
+  {{ match_details(m) }}
 </div>
 {% endmacro %}
 
@@ -92,5 +151,6 @@
   {% elif m.correct is false %}
     <p class="verdict miss">✗ Ennuste meni ohi</p>
   {% endif %}
+  {{ match_details(m) }}
 </div>
 {% endmacro %}

@@ -32,9 +32,23 @@ def connect(database_path) -> sqlite3.Connection:
     return conn
 
 
+# Sarakkeet, jotka on lisätty tauluihin myöhemmin: (taulu, sarake, tyyppi).
+# CREATE TABLE IF NOT EXISTS ei muuta jo olemassa olevaa taulua, joten
+# vanhaan tietokantaan uudet sarakkeet lisätään erikseen ALTER TABLE -komennolla.
+_ADDED_COLUMNS = [
+    ("matches", "event_url", "TEXT"),
+    ("matches", "stream_url", "TEXT"),
+]
+
+
 def init_schema(conn: sqlite3.Connection) -> None:
-    """Luo taulut ajamalla schema.sql-tiedoston."""
+    """Luo taulut ajamalla schema.sql-tiedoston ja lisää puuttuvat sarakkeet."""
     conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+    for table, column, column_type in _ADDED_COLUMNS:
+        # PRAGMA table_info palauttaa taulun sarakkeet, row["name"] on sarakkeen nimi.
+        existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+        if column not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
     conn.commit()
 
 

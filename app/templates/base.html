@@ -13,7 +13,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}CS2 Ennustin{% endblock %}</title>
   <!-- url_for etsii tiedoston oikean osoitteen, joten polkuja ei tarvitse kirjoittaa käsin -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=css_version) }}">
 </head>
 <body>
   <header>
@@ -37,8 +37,12 @@
     Data: <a href="https://github.com/ValveSoftware/counter-strike_regional_standings">Valve Regional Standings</a>
     (tapahtumadata HLTV.org) ·
     <a href="https://liquipedia.net/counterstrike/">Liquipedia</a>
-    (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA 3.0</a>).
+    (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA 3.0</a>) ·
+    kertoimet <a href="https://oddspapi.io">OddsPapi</a>.
     Ennusteet ovat suuntaa antavia.
+    {% if odds_quota_full %}
+      <br><span class="small">Kertoimien kuukausikiintiö on käytetty, joten kertoimet eivät päivity {{ odds_next_reset }} asti.</span>
+    {% endif %}
   </footer>
 </body>
 </html>

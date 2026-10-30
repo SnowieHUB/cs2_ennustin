@@ -147,3 +147,33 @@ def test_match_with_score_in_upcoming_section_is_live():
     (match,) = parse_matches(page)
     assert match["status"] == "live"
     assert (match["score1"], match["score2"]) == (1, 1)
+
+
+def test_parse_match_links():
+    block = (
+        'type=upcoming<div class="match-info"><span data-timestamp="1793268900"></span>'
+        f'{_team_html("Team Vitality", "Vitality")}vs(Bo3){_team_html("Natus Vincere", "NAVI")}'
+        '<span class="match-info-tournament-name"><a href="/counterstrike/Tesla_Cup/2026#Playoffs" title="x">'
+        '<span>Tesla Cup 2026 - Playoffs</span></a></span>'
+        '<a href="/counterstrike/Special:Stream/twitch/ESL_CS" title="y">Watch now</a></div>'
+    )
+    match = parse_matches(block)[0]
+    assert match["event_url"] == "https://liquipedia.net/counterstrike/Tesla_Cup/2026#Playoffs"
+    assert match["stream_url"] == "https://liquipedia.net/counterstrike/Special:Stream/twitch/ESL_CS"
+
+
+def test_old_database_gets_new_columns():
+    import sqlite3
+
+    from app.database.db import init_schema
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    # Vanha matches-taulu ilman linkkisarakkeita.
+    conn.execute(
+        "CREATE TABLE matches (id INTEGER PRIMARY KEY, played_at TEXT, status TEXT,"
+        " team1_id INTEGER, team2_id INTEGER)"
+    )
+    init_schema(conn)
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(matches)")}
+    assert {"event_url", "stream_url"} <= columns

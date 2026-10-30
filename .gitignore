@@ -5,3 +5,5 @@ data/cs2.db
 data/.liquipedia_last_fetch
 data/vrs_repo/
 data/model.json
+data/oddspapi_key.txt
+data/odds_status.json

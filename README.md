@@ -32,6 +32,9 @@ Muuta:
 - **Siirtojen seuranta:** kun pelaaja vaihtaa joukkuetta, vanha jakso suljetaan ja uusi avataan, joten historia säilyy.
 - **Joukkuehaku:** ennustesivuilla on hakukenttä, joka suodattaa nimiä kirjoittaessa. Haku hyväksyy myös lyhenteet (esim. NAVI).
 - **Ajat Suomen ajassa**, ja ennusteet automaattisesti ottelun omalle formaatille (Bo1/Bo3/Bo5).
+- **Tuloskortit:** pelatun ottelun tulos, ennen ottelua laskettu ennuste ja tieto siitä, osuiko ennuste.
+- **Lisätiedot:** jokaisen ottelun avattavassa osiossa on päivä, kellonaika, tapahtuma, vaihe, formaatti,
+  linkki Liquipedian turnaussivulle ja striimiin sekä Pinnaclen kertoimet verrattuna mallin ennusteeseen.
 
 ## Käytetyt tekniikat ja palvelut
 
@@ -70,6 +73,7 @@ hoituvat Pythonin vakiokirjastolla.
 | [Valve Regional Standings](https://github.com/ValveSoftware/counter-strike_regional_standings) | Ranking, pisteet, kokoonpanot ja noin 2 vuoden otteluhistoria (noin 30 000 ottelua) | Noin kerran kuussa |
 | [Liquipedia: Matches](https://liquipedia.net/counterstrike/Liquipedia:Matches) | Noin 50 tulevaa tai käynnissä olevaa ottelua ja 50 tuoretta tulosta | Jatkuvasti |
 | Liquipedia: joukkuesivut | Pelaajien oikeat nimet, maat, IGL-rooli, liittymispäivät ja valmentaja | Jatkuvasti |
+| [OddsPapi](https://oddspapi.io) | Pinnaclen voittajakertoimet (yleensä noin vuorokautta ennen ottelua) | Neljän tunnin välein |
 
 - **Valven repo** kloonataan gitillä kansioon `data/vrs_repo`. Vain tarvittavat tiedostot ladataan
   ("sparse checkout", noin 30 Mt). Gitillä ei ole GitHubin API:n 60 pyynnön tuntirajaa.
@@ -77,6 +81,11 @@ hoituvat Pythonin vakiokirjastolla.
   Data on CC-BY-SA 3.0 -lisenssillä, joten lähde mainitaan jokaisen sivun alalaidassa.
 - **Tier 1** = ainakin toinen joukkue on VRS:n top 30:ssä (`app/config.py`: `TIER1_MAX_RANK`).
   Liquipedian ottelulistassa ei ole turnauksen tasoa, joten taso päätellään joukkueista.
+- **OddsPapi:** ilmaisessa tilissä on 250 pyyntöä kuukaudessa. Yksi päivitys maksaa 1 pyynnön
+  (otteluluettelo), koska kertoimet luetaan ilmaisesta historiarajapinnasta. Haku lopettaa, kun kiintiö
+  on lähes käytetty, ja sivun alalaidassa kerrotaan siitä. Jos edellisestä hausta on alle 3 tuntia,
+  uutta hakua ei tehdä. Nettisivu itse ei koskaan kutsu API:a, vaan se lukee kertoimet tietokannasta. API-avain luetaan tiedostosta
+  `data/oddspapi_key.txt` tai ympäristömuuttujasta `ODDSPAPI_KEY`, eikä se ole gitissä.
 - **Nimien yhdistäminen:** sama joukkue on eri lähteissä eri nimellä ("Team Vitality" / "Vitality").
   `app/teams/names.py` muuttaa nimet vertailuavaimiksi, jotka täsmäävät.
 
@@ -213,6 +222,7 @@ python manage.py run                 # kehityspalvelin: http://127.0.0.1:5000
 | `python manage.py sync` | Päivittää kaiken: ranking, otteluhistoria, ottelut ja pelaajatiedot |
 | `python manage.py sync --only matches` | Päivittää vain tulevat, käynnissä olevat ja pelatut ottelut |
 | `python manage.py sync --only teams` | Päivittää vain pelaajatiedot Liquipediasta |
+| `python manage.py sync --only odds` | Päivittää kertoimet (vaatii OddsPapin API-avaimen, 1 pyyntö / ajo) |
 | `python manage.py train` | Opettaa ennustemallin uudelleen |
 | `python manage.py run` | Käynnistää kehityspalvelimen (debug-tila, **ei** internetiin) |
 | `pytest` | Ajaa testit |
@@ -267,6 +277,7 @@ Cloudflare hoitaa HTTPS:n kävijöille.
 */30 * * * *  cd /polku/cs2_ennustin && .venv/bin/python manage.py sync --only matches >> data/sync.log 2>&1
 30 5 * * *    cd /polku/cs2_ennustin && .venv/bin/python manage.py sync >> data/sync.log 2>&1
 0 7 8 * *     cd /polku/cs2_ennustin && .venv/bin/python manage.py train >> data/sync.log 2>&1
+15 */4 * * *  cd /polku/cs2_ennustin && .venv/bin/python manage.py sync --only odds >> data/sync.log 2>&1
 ```
 
 | Ajastus | Mitä |
@@ -274,6 +285,7 @@ Cloudflare hoitaa HTTPS:n kävijöille.
 | `*/30 * * * *` | Ottelut 30 minuutin välein, jolloin päättyneet ottelut siirtyvät tuloksiin |
 | `30 5 * * *` | Kaikki data joka päivä klo 5.30 |
 | `0 7 8 * *` | Mallin uudelleenopetus joka kuun 8. päivä (Valve julkaisee rankingin kuun alussa) |
+| `15 */4 * * *` | Kertoimet neljän tunnin välein: noin 186 pyyntöä kuukaudessa, kun kiintiö on 250 |
 
 Kentät ovat järjestyksessä minuutti, tunti, päivä, kuukausi ja viikonpäivä.
 Sivu näyttää uuden datan heti. Gunicornia ei tarvitse käynnistää uudelleen datan päivityksen jälkeen.

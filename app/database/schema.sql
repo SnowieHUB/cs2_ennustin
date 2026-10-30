@@ -66,8 +66,25 @@ CREATE TABLE IF NOT EXISTS matches (
     team2_score INTEGER,
     winner_id   INTEGER REFERENCES teams(id),  -- NULL = ei vielä pelattu tai tasapeli
     source      TEXT,               -- mistä ottelu tuli: 'vrs' tai 'liquipedia'
+    event_url   TEXT,               -- turnaussivu Liquipediassa (oikeaan vaiheeseen)
+    stream_url  TEXT,               -- lähetyksen linkki, jos tiedossa
     -- Sama ottelu ei voi olla kannassa kahdesti.
     UNIQUE (played_at, team1_id, team2_id)
 );
 CREATE INDEX IF NOT EXISTS idx_matches_status ON matches(status, played_at);
 CREATE INDEX IF NOT EXISTS idx_matches_teams  ON matches(team1_id, team2_id);
+
+-- Vedonlyöntikertoimet (OddsPapi / Pinnacle). Omana tauluna, koska tulevat ottelut
+-- poistetaan ja haetaan uudelleen joka päivityksessä, mutta kertoimet halutaan säilyttää.
+-- Ottelu yhdistetään kertoimiin joukkueiden ja aloitusajan perusteella.
+CREATE TABLE IF NOT EXISTS odds (
+    fixture_id  TEXT PRIMARY KEY,   -- OddsPapin ottelun tunnus
+    team1_id    INTEGER NOT NULL REFERENCES teams(id),
+    team2_id    INTEGER NOT NULL REFERENCES teams(id),
+    start_time  TEXT NOT NULL,      -- UTC, esim. 2026-10-30 15:00
+    price1      REAL NOT NULL,      -- desimaalikerroin joukkueen 1 voitolle, esim. 1.60
+    price2      REAL NOT NULL,
+    bookmaker   TEXT NOT NULL,
+    updated_at  TEXT NOT NULL       -- milloin kertoimet haettiin (UTC)
+);
+CREATE INDEX IF NOT EXISTS idx_odds_teams ON odds(team1_id, team2_id);

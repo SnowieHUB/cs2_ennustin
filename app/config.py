@@ -27,3 +27,10 @@ VRS_TOP_N = 100
 
 # Aikavyöhyke, jossa ottelujen ajat näytetään sivulla.
 TIMEZONE = "Europe/Helsinki"
+
+# OddsPapin API-avain kertoimia varten. Avain luetaan tiedostosta (ei GitHubiin,
+# katso .gitignore) tai ympäristömuuttujasta ODDSPAPI_KEY.
+ODDSPAPI_KEY_PATH = DATA_DIR / "oddspapi_key.txt"
+# Kertoimien haun tila (montako pyyntöä jäljellä). Sivu näyttää tästä ilmoituksen,
+# jos kuukauden kiintiö on käytetty.
+ODDS_STATUS_PATH = DATA_DIR / "odds_status.json"

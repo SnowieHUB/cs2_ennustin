@@ -67,6 +67,9 @@ _RE_TEAM = re.compile(r'<span class="name"[^>]*>(?:<a [^>]*title="([^"]*)"[^>]*>
 _RE_SCORE = re.compile(r'scoreholder-score[^"]*">(\d+)<')
 _RE_BEST_OF = re.compile(r"\(Bo(\d+)\)")
 _RE_EVENT = re.compile(r'match-info-tournament-name">.*?<span>([^<]*)</span>', re.S)
+_RE_EVENT_LINK = re.compile(r'match-info-tournament-name"><a href="(/counterstrike/[^"]+)"')
+_RE_STREAM = re.compile(r'href="(/counterstrike/Special:Stream/[^"]+)"')
+LIQUIPEDIA_URL = "https://liquipedia.net"
 
 
 def _clean(name: str) -> str:
@@ -123,6 +126,9 @@ def _parse_block(block: str, is_completed: bool) -> dict | None:
     scores = _RE_SCORE.findall(block)
     best_of = _RE_BEST_OF.search(block)
     event = _RE_EVENT.search(block)
+    # Linkit ovat sivulla suhteellisia (/counterstrike/...), joten eteen lisätään osoite.
+    event_link = _RE_EVENT_LINK.search(block)
+    stream = _RE_STREAM.search(block)
 
     result = {
         "played_at": played_at,
@@ -132,6 +138,8 @@ def _parse_block(block: str, is_completed: bool) -> dict | None:
         "event": html.unescape(event.group(1)).strip() if event else None,
         "status": "upcoming",
         "score1": None, "score2": None,
+        "event_url": LIQUIPEDIA_URL + html.unescape(event_link.group(1)) if event_link else None,
+        "stream_url": LIQUIPEDIA_URL + html.unescape(stream.group(1)) if stream else None,
     }
     if is_completed and len(scores) >= 2:
         result.update(status="completed", score1=int(scores[0]), score2=int(scores[1]))

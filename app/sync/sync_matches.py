@@ -44,6 +44,7 @@ def sync_liquipedia_matches(conn) -> tuple[int, int]:
             is_new = matches_repo.save_match(
                 conn, m["played_at"], m["event"], m["best_of"], m["status"],
                 team1_id, team2_id, m["score1"], m["score2"], source="liquipedia",
+                event_url=m["event_url"], stream_url=m["stream_url"],
             )
             if m["status"] in ("upcoming", "live"):
                 upcoming += 1

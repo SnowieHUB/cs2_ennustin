@@ -6,6 +6,7 @@ Käyttö:
   python manage.py init --reset            poistaa vanhan tietokannan ensin
   python manage.py sync                    päivittää rankingin, kokoonpanot, pelaajatiedot ja ottelut
   python manage.py sync --only matches     päivittää vain ottelut (nopea, aja vaikka tunnin välein)
+  python manage.py sync --only odds        päivittää kertoimet (OddsPapi, 1 pyyntö / ajo)
   python manage.py train                   opettaa ennustemallin uudelleen (esim. kerran kuussa)
   python manage.py sync --file POLKU       päivittää kokoonpanot omasta JSON-tiedostosta
   python manage.py sync --pandascore       päivittää kokoonpanot PandaScoresta
@@ -99,6 +100,11 @@ def cmd_sync(args) -> None:
         if args.only in (None, "teams"):
             teams_found, players = sync_team_info(conn, top_n=config.VRS_TOP_N)
             print(f"Pelaajatiedot: {teams_found} joukkuetta, {players} pelaajaa.")
+        if args.only == "odds":
+            # Ei mukana oletuksena: ilmaisessa tilissä on vain 250 pyyntöä kuukaudessa,
+            # joten kertoimille on oma cron-rivi, jonka tahti on laskettu kiintiön mukaan.
+            from app.sync.sync_odds import sync_odds
+            print(sync_odds(conn))
     conn.close()
 
 
@@ -135,7 +141,7 @@ def main() -> None:
     p_init.set_defaults(func=cmd_init)
 
     p_sync = sub.add_parser("sync", help="päivitä data")
-    p_sync.add_argument("--only", choices=["vrs", "matches", "teams"], help="päivitä vain yksi lähde")
+    p_sync.add_argument("--only", choices=["vrs", "matches", "teams", "odds"], help="päivitä vain yksi lähde")
     p_sync.add_argument("--file", help="JSON-tiedosto, jossa kokoonpanot")
     p_sync.add_argument("--pandascore", action="store_true", help="hae kokoonpanot PandaScoren API:sta")
     p_sync.add_argument("--date", default=date.today().isoformat(), help="muutosten päivä (oletus: tänään)")
