@@ -3,7 +3,7 @@ Otteluiden tietokantahaut: tulevat ottelut, pelatut tulokset ja tallennus.
 """
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 # Yhteinen SELECT-alku, jota käytetään useassa kyselyssä. Joukkueiden tiedot
 # liitetään kahdesti (t1 ja t2), koska ottelussa on kaksi joukkuetta.
@@ -17,9 +17,17 @@ _MATCH_SELECT = """
 """
 
 
-def now_utc() -> str:
-    """Nykyhetki samassa muodossa kuin played_at (UTC), esim. "2026-10-29 15:05"."""
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+# Kuinka kauan ottelu voi enintään olla käynnissä. Bo3 kestää yleensä 2-4 tuntia.
+# Joskus Liquipedia jättää ottelun "käynnissä olevaksi" vielä päiviä sen jälkeen,
+# kun se on loppunut. Tätä vanhempia otteluita ei siksi näytetä käynnissä olevina.
+LIVE_MAX_HOURS = 8
+
+
+def now_utc(hours_ago: float = 0) -> str:
+    """Nykyhetki (tai hours_ago tuntia sitten) samassa muodossa kuin played_at (UTC),
+    esim. "2026-10-29 15:05"."""
+    moment = datetime.now(timezone.utc) - timedelta(hours=hours_ago)
+    return moment.strftime("%Y-%m-%d %H:%M")
 
 
 def _filters(max_rank, team_id) -> tuple[list[str], list]:
@@ -59,11 +67,16 @@ def get_live(conn, max_rank: int | None = None, team_id: int | None = None):
       - ottelut, joiden aloitusaika on jo mennyt, mutta joista ei vielä ole tulosta.
         Ne ovat todennäköisesti käynnissä, vaikka päivitystä ei ole ajettu.
     Kun tulos tulee seuraavassa päivityksessä, ottelu siirtyy tuloksiin.
+    Yli LIVE_MAX_HOURS tuntia sitten alkaneita ei näytetä (unohtuneet merkinnät).
     """
     conditions, params = _filters(max_rank, team_id)
-    conditions = ["(m.status = 'live' OR (m.status = 'upcoming' AND m.played_at <= ?))", *conditions]
+    conditions = [
+        "(m.status = 'live' OR (m.status = 'upcoming' AND m.played_at <= ?))",
+        "m.played_at > ?",
+        *conditions,
+    ]
     sql = _MATCH_SELECT + " WHERE " + " AND ".join(conditions) + " ORDER BY m.played_at"
-    return conn.execute(sql, (now_utc(), *params)).fetchall()
+    return conn.execute(sql, (now_utc(), now_utc(LIVE_MAX_HOURS), *params)).fetchall()
 
 
 def get_recent_results(conn, max_rank: int | None = None, limit: int = 20):

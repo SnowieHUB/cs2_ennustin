@@ -107,3 +107,17 @@ def test_started_match_moves_from_upcoming_to_live(conn):
     # Alkanut ottelu on "menossa", vaikka Liquipedia ei olisi vielä merkinnyt sitä.
     assert [m["played_at"] for m in matches_repo.get_live(conn)] == [started]
     assert [m["played_at"] for m in matches_repo.get_upcoming(conn)] == [later]
+
+
+def test_stale_live_match_is_hidden(conn):
+    from app.matches import repository as matches_repo
+
+    a = teams_repo.get_or_create_team(conn, "A")
+    b = teams_repo.get_or_create_team(conn, "B")
+    # Liquipedia näyttää ottelun yhä käynnissä, vaikka se alkoi eilen.
+    yesterday = matches_repo.now_utc(hours_ago=24)
+    recent = matches_repo.now_utc(hours_ago=1)
+    matches_repo.save_match(conn, yesterday, None, 3, "live", a, b, 0, 1)
+    matches_repo.save_match(conn, recent, None, 3, "live", b, a, 1, 0)
+
+    assert [m["played_at"] for m in matches_repo.get_live(conn)] == [recent]
