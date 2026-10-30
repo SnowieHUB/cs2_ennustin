@@ -104,3 +104,15 @@ def test_recent_fetch_is_not_repeated(conn, tmp_path, monkeypatch):
     message = sync_module.sync_odds(conn)    # heti perään: ohitetaan
     assert len(calls) == 1
     assert "ohitetaan" in message
+
+
+def test_app_creates_missing_tables_on_start(tmp_path):
+    import sqlite3
+
+    from app import create_app
+
+    path = tmp_path / "vanha.db"
+    sqlite3.connect(path).close()  # tyhjä tietokanta ilman tauluja
+    create_app(database_path=path)
+    tables = {row[0] for row in sqlite3.connect(path).execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert {"matches", "odds"} <= tables

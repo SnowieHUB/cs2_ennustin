@@ -24,6 +24,13 @@ def create_app(database_path=None) -> Flask:
     # Suljetaan tietokantayhteys automaattisesti jokaisen sivupyynnön lopuksi.
     flask_app.teardown_appcontext(db.close_db)
 
+    # Varmistetaan käynnistyksessä, että kaikki taulut ja sarakkeet ovat olemassa.
+    # Muuten uuden version tauluja (esim. kertoimet) ei olisi ennen ensimmäistä
+    # sync-komentoa, ja sivu kaatuisi. Komento ei muuta olemassa olevaa dataa.
+    conn = db.connect(flask_app.config["DATABASE_PATH"])
+    db.init_schema(conn)
+    conn.close()
+
     # Omat suodattimet HTML-pohjiin, esim. {{ aika | local_time }}
     flask_app.add_template_filter(filters.local_time)
     flask_app.add_template_filter(filters.local_date)
