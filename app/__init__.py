@@ -59,11 +59,13 @@ def create_app(database_path=None) -> Flask:
     from app.players.routes import bp as players_bp
     from app.predictions.routes import bp as predictions_bp
     from app.matches.routes import bp as matches_bp
+    from app.stats.routes import bp as stats_bp
 
     flask_app.register_blueprint(main_bp)
     flask_app.register_blueprint(teams_bp)
     flask_app.register_blueprint(players_bp)
     flask_app.register_blueprint(predictions_bp)
     flask_app.register_blueprint(matches_bp)
+    flask_app.register_blueprint(stats_bp)
 
     return flask_app

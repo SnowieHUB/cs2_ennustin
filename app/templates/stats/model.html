@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% from "matches/_macros.html" import team_link %}
+{% block title %}Mallin tilasto – CS2 Ennustin{% endblock %}
+
+{# Yksi tilastolaatikko: otsikko, iso prosentti ja osumat / ottelut. #}
+{% macro stat_box(title, s, note='') %}
+<div class="stat-box card">
+  <div class="muted">{{ title }}</div>
+  <div class="stat-big">{{ s.rate | percent if s.rate is not none else '–' }}</div>
+  <div class="muted small">{{ s.hits }} / {{ s.total }} ottelua{% if note %}<br>{{ note }}{% endif %}</div>
+</div>
+{% endmacro %}
+
+{% block content %}
+<h1>Mallin tilasto</h1>
+<p class="muted">
+  Kuinka usein ennusteen suosikki voitti. Jokaisen ottelun ennuste on laskettu
+  ennen ottelua, joten lopputulos ei vaikuta siihen.
+</p>
+
+{# Valinnat: url_for säilyttää toisen valinnan, kun toista vaihdetaan. #}
+<p class="toggle">
+  <a href="{{ url_for('stats.model_stats', days=period) }}" class="{{ 'active' if not show_all }}">Tier 1 (VRS top {{ tier1_rank }})</a>
+  <a href="{{ url_for('stats.model_stats', days=period, all=1) }}" class="{{ 'active' if show_all }}">Kaikki</a>
+</p>
+<p class="toggle">
+  {% for key, _, label in periods %}
+  <a href="{{ url_for('stats.model_stats', days=key, all=1 if show_all else None) }}" class="{{ 'active' if key == period }}">{{ label }}</a>
+  {% endfor %}
+</p>
+
+<div class="stat-grid">
+  {{ stat_box("Malli osui", stats.model) }}
+  {{ stat_box("Pinnacle osui", stats.odds, "ottelut, joille on kertoimet") }}
+  {{ stat_box("Malli samoissa otteluissa", stats.model_on_odds, "reilu vertailu Pinnaclen kanssa") }}
+  {{ stat_box("Opetuksen jälkeen", stats.after_training, "opetettu " ~ (stats.trained_on or '–')) }}
+</div>
+<p class="muted small stat-note">
+  <strong>Opetuksen jälkeen</strong> pelatut ottelut ovat rehellisin mittari, koska malli ei ole
+  nähnyt niitä opetuksessa. Vanhemmissa otteluissa malli näyttää hieman todellista paremmalta.
+  Kertoimia on kerätty vasta lokakuun 2026 lopusta alkaen.
+</p>
+
+<section class="card">
+  <h2>Kuinka luotettava malli on?</h2>
+  <p class="muted">
+    Jos malli antaa suosikille 70 %, suosikin pitäisi voittaa noin 70 % kerroista.
+    Kun "Malli sanoi" ja "Suosikki voitti" ovat lähellä toisiaan, prosentteihin voi luottaa.
+  </p>
+  <table>
+    <thead>
+      <tr><th>Suosikin todennäköisyys</th><th class="num">Malli sanoi</th><th>Suosikki voitti</th><th class="num">Otteluita</th></tr>
+    </thead>
+    <tbody>
+      {% for row in stats.calibration %}
+      <tr>
+        <td>{{ row.label }}</td>
+        <td class="num muted">{{ row.expected | percent if row.expected is not none else '–' }}</td>
+        <td>
+          {% if row.rate is not none %}
+          <div class="calib">
+            <span class="calib-num">{{ row.rate | percent }}</span>
+            <div class="bar calib-bar"><div class="bar-a" style="width: {{ row.rate * 100 }}%"></div></div>
+          </div>
+          {% else %}–{% endif %}
+        </td>
+        <td class="num">{{ row.total }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="card">
+  <h2>Malli vs Pinnacle</h2>
+  <p class="muted">Ottelut, joille on kertoimet. Prosentti on ensimmäisenä mainitun joukkueen voittotodennäköisyys.</p>
+  <table>
+    <thead>
+      <tr><th>Aika</th><th>Ottelu</th><th class="num">Malli</th><th class="num">Pinnacle</th></tr>
+    </thead>
+    <tbody>
+      {% for m in stats.odds_matches %}
+      <tr>
+        <td class="date">{{ m.played_at | local_time }}</td>
+        <td>
+          <span class="{{ 'winner' if m.winner_id == m.team1_id }}">{{ team_link(m.team1_id, m.team1_name, m.team1_rank) }}</span>
+          <span class="muted">vs</span>
+          <span class="{{ 'winner' if m.winner_id == m.team2_id }}">{{ team_link(m.team2_id, m.team2_name, m.team2_rank) }}</span>
+        </td>
+        {# ✓ = ennusteen suosikki voitti, ✗ = hävisi #}
+        <td class="num">{{ m.prob1 | percent }} <span class="{{ 'hit' if m.correct else 'miss' }}">{{ '✓' if m.correct else '✗' }}</span></td>
+        <td class="num">{{ m.odds.fair1 | percent }} <span class="{{ 'hit' if m.odds_correct else 'miss' }}">{{ '✓' if m.odds_correct else '✗' }}</span></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">Ei vielä pelattuja otteluita, joille olisi kertoimet. Niitä kertyy päivittäin.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted small">Voittaja on lihavoitu.</p>
+</section>
+
+{# Mallin tarkkuus testijaksolla. metrics tulee data/model.json-tiedostosta. #}
+{% if metrics %}
+<details class="card explain">
+  <summary><h2>Opetuksen testitulokset</h2></summary>
+  <p class="muted">
+    Testattu otteluilla {{ metrics.test_period[0] }} – {{ metrics.test_period[1] }}, joita malli ei nähnyt
+    opetuksessa ({{ metrics.train_matches }} opetusottelua, {{ metrics.train_period[0] }} – {{ metrics.train_period[1] }}).
+    Lopullinen malli opetettiin tämän jälkeen kaikilla otteluilla.
+  </p>
+  <table>
+    <thead>
+      <tr><th>Malli</th><th class="num">Osumat</th><th class="num">Tier 1 osumat</th><th class="num">Log loss</th><th class="num">Brier</th></tr>
+    </thead>
+    <tbody>
+      {% for r in metrics.results %}
+      <tr class="{{ 'winner' if loop.last }}">
+        <td>{{ r.name }}</td>
+        <td class="num">{{ r.all.accuracy | percent }}</td>
+        <td class="num">{% if r.tier1 %}{{ r.tier1.accuracy | percent }} <span class="muted">({{ r.tier1.n }})</span>{% else %}–{% endif %}</td>
+        <td class="num">{{ "%.3f" | format(r.all.log_loss) }}</td>
+        <td class="num">{{ "%.3f" | format(r.all.brier) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted">Log loss ja Brier mittaavat prosenttien tarkkuutta: pienempi on parempi. Kolikonheiton log loss on 0.693.</p>
+</details>
+{% endif %}
+{% endblock %}

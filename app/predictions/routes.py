@@ -1,20 +1,20 @@
 """
-Ennustesivut:
-  /predict   kahden joukkueen ennuste (Bo3) ja mallin tarkkuus
-  /series    sarjaennuste: sama ottelu Bo1-, Bo3- ja Bo5-formaatissa
+Ennustesivu:
+  /predict   kahden joukkueen ennuste Bo1-, Bo3- ja Bo5-formaatissa ja tulevat ottelut
+  /series    vanha sarjaennusteen osoite, ohjaa /predict-sivulle
 
 Sivuilla valitaan kaksi joukkuetta. Kun lomake lähetetään, valinnat tulevat
 osoitteeseen parametreina (esim. /predict?team_a=1&team_b=2), ja sivu
 näyttää ennusteen.
 """
 
-from flask import Blueprint, render_template, request
+from flask import Blueprint, redirect, render_template, request, url_for
 
 from app import config
 from app.database.db import get_db
 from app.matches import repository as matches_repo
 from app.predictions.series import FORMATS
-from app.predictions.service import add_predictions, get_model_metrics, predict_match, predict_series
+from app.predictions.service import add_predictions, predict_series
 from app.teams import repository as teams_repo
 from app.teams.names import SHORT_NAMES, name_key
 
@@ -79,30 +79,7 @@ def _selected_teams(teams):
 
 @bp.route("/predict")
 def predict():
-    conn = get_db()
-    teams = _ranked_teams(conn)
-    team_a_id, team_b_id, error = _selected_teams(teams)
-
-    result = None
-    if team_a_id and team_b_id and not error:
-        result = predict_match(conn, team_a_id, team_b_id)
-        result["team_a"] = teams_repo.get_team(conn, team_a_id)
-        result["team_b"] = teams_repo.get_team(conn, team_b_id)
-
-    return render_template(
-        "predictions/predict.html",
-        teams=teams,
-        short_names=_short_names(teams),
-        team_a_id=team_a_id,
-        team_b_id=team_b_id,
-        result=result,
-        error=error,
-        metrics=get_model_metrics(),
-    )
-
-
-@bp.route("/series")
-def series():
+    """Kahden joukkueen ennuste kaikissa formaateissa sekä tulevat tier 1 -ottelut."""
     conn = get_db()
     teams = _ranked_teams(conn)
     team_a_id, team_b_id, error = _selected_teams(teams)
@@ -117,7 +94,7 @@ def series():
     upcoming = add_predictions(conn, matches_repo.get_upcoming(conn, max_rank=config.TIER1_MAX_RANK, limit=20))
 
     return render_template(
-        "predictions/series.html",
+        "predictions/predict.html",
         teams=teams,
         short_names=_short_names(teams),
         team_a_id=team_a_id,
@@ -127,3 +104,12 @@ def series():
         upcoming=upcoming,
         formats=FORMATS,
     )
+
+
+@bp.route("/series")
+def series():
+    """Vanha Sarjaennuste-sivu on yhdistetty Ennusta-sivuun. Vanhat linkit ohjataan sinne.
+
+    request.args sisältää osoitteen parametrit (team_a, team_b), jotka siirretään mukana.
+    """
+    return redirect(url_for("predictions.predict", **request.args))

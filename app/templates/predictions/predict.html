@@ -1,11 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Ennusta – CS2 Ennustin{% endblock %}
-
 {% from "predictions/_macros.html" import team_datalist, team_input %}
+{% from "matches/_macros.html" import team_link %}
+{% block title %}Ennusta – CS2 Ennustin{% endblock %}
 
 {% block content %}
 <h1>Ennusta ottelu</h1>
-<p class="muted">Ennuste on Bo3-sarjalle. Bo1- ja Bo5-ennusteet: <a href="{{ url_for('predictions.series', team_a=team_a_id, team_b=team_b_id) if team_a_id and team_b_id else url_for('predictions.series') }}">Sarjaennuste</a>.</p>
+<p class="muted">
+  Valitse kaksi joukkuetta. Ennuste näytetään Bo1-, Bo3- ja Bo5-formaatissa: mitä pidempi
+  sarja, sitä varmemmin parempi joukkue voittaa, koska yksittäisen kartan sattuma tasoittuu.
+</p>
 
 <form class="predict-form card" method="get">
   {{ team_datalist(teams, short_names) }}
@@ -18,48 +21,85 @@
 {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
 {% if result %}
-<section class="card result">
-  <div class="side">
-    <h2>{{ result.team_a.name }}</h2>
-    {# "%.0f" | format(...) muotoilee luvun ilman desimaaleja #}
-    <p class="big">{{ "%.0f" | format(result.prob_a * 100) }} %</p>
-    <p class="muted">Vahvuus {{ result.rating_a | round | int }}</p>
+<section class="card">
+  <h2>
+    {{ result.team_a.name }} <span class="muted">({{ result.rating_a | round | int }})</span>
+    vs
+    {{ result.team_b.name }} <span class="muted">({{ result.rating_b | round | int }})</span>
+  </h2>
+
+  {# Yksi rivi per formaatti. result.formats on sanakirja {1: p, 3: p, 5: p}.
+     Bo3 korostetaan, koska se on yleisin formaatti ja mallin perusta. #}
+  <div class="formats">
+    {% for best_of in formats %}
+    {% set p = result.formats[best_of] %}
+    <div class="format {{ 'main' if best_of == 3 }}">
+      <div class="format-name">Bo{{ best_of }}{% if best_of == 3 %} <span class="muted small-inline">yleisin</span>{% endif %}</div>
+      <div class="format-probs">
+        <span class="{{ 'fav' if p > 0.5 }}">{{ result.team_a.name }} {{ p | percent }}</span>
+        <span class="{{ 'fav' if p < 0.5 }}">{{ (1 - p) | percent }} {{ result.team_b.name }}</span>
+      </div>
+      <div class="bar"><div class="bar-a" style="width: {{ p * 100 }}%"></div></div>
+    </div>
+    {% endfor %}
   </div>
-  <div class="side">
-    <h2>{{ result.team_b.name }}</h2>
-    <p class="big">{{ "%.0f" | format(result.prob_b * 100) }} %</p>
-    <p class="muted">Vahvuus {{ result.rating_b | round | int }}</p>
-  </div>
-  {# Palkki: vasemman osan leveys = A:n voittotodennäköisyys #}
-  <div class="bar"><div class="bar-a" style="width: {{ result.prob_a * 100 }}%"></div></div>
+
+  <p class="muted">
+    Yhden kartan voittotodennäköisyys: {{ result.team_a.name }} {{ result.map | percent }}.
+    Luku suluissa on joukkueen vahvuus (1500 = keskitaso).
+  </p>
 </section>
 {% endif %}
 
-{# Mallin tarkkuus testijaksolla. metrics tulee data/model.json-tiedostosta. #}
-{% if metrics %}
-<section class="card">
-  <h2>Mallin tarkkuus</h2>
-  <p class="muted">
-    Opetettu {{ metrics.train_matches }} ottelulla ({{ metrics.train_period[0] }} – {{ metrics.train_period[1] }}).
-    Testattu otteluilla {{ metrics.test_period[0] }} – {{ metrics.test_period[1] }}, joita malli ei nähnyt opetuksessa.
-  </p>
-  <table>
-    <thead>
-      <tr><th>Malli</th><th class="num">Osumat</th><th class="num">Tier 1 osumat</th><th class="num">Log loss</th><th class="num">Brier</th></tr>
-    </thead>
-    <tbody>
-      {% for r in metrics.results %}
-      <tr class="{{ 'winner' if loop.last }}">
-        <td>{{ r.name }}</td>
-        <td class="num">{{ r.all.accuracy | percent }}</td>
-        <td class="num">{% if r.tier1 %}{{ r.tier1.accuracy | percent }} <span class="muted">({{ r.tier1.n }})</span>{% else %}–{% endif %}</td>
-        <td class="num">{{ "%.3f" | format(r.all.log_loss) }}</td>
-        <td class="num">{{ "%.3f" | format(r.all.brier) }}</td>
-      </tr>
+<h2>Tulevat tier 1 -ottelut kaikissa formaateissa</h2>
+<table class="card">
+  <thead>
+    <tr>
+      <th>Aika</th><th>Ottelu</th>
+      {% for best_of in formats %}<th class="num">Bo{{ best_of }}</th>{% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in upcoming %}
+    <tr>
+      <td class="date">{{ m.played_at | local_time }}</td>
+      <td>
+        {{ team_link(m.team1_id, m.team1_name, m.team1_rank) }}
+        <span class="muted">vs</span>
+        {{ team_link(m.team2_id, m.team2_name, m.team2_rank) }}
+      </td>
+      {# Luku on joukkueen 1 todennäköisyys. Ottelun oikea formaatti korostetaan. #}
+      {% for best_of in formats %}
+      <td class="num {{ 'actual' if m.best_of == best_of }}">{{ m.formats[best_of] | percent }}</td>
       {% endfor %}
-    </tbody>
-  </table>
-  <p class="muted">Log loss ja Brier: pienempi on parempi. Kolikonheiton log loss on 0.693.</p>
-</section>
-{% endif %}
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">Ei tulevia otteluita. Päivitä: python manage.py sync</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p class="muted">
+  Prosentti on ensimmäisenä mainitun joukkueen voittotodennäköisyys.
+  <span class="actual">Korostettu</span> = ottelun oikea formaatti Liquipedian mukaan.
+</p>
+
+{# Selitys avattavana, jotta se ei vie tilaa sivulta. #}
+<details class="card explain">
+  <summary><h2>Miten Bo1, Bo3 ja Bo5 lasketaan?</h2></summary>
+  <p>
+    Ennustemalli on opetettu otteluilla, joista suurin osa on Bo3-sarjoja, joten sen
+    antama luku tulkitaan Bo3-todennäköisyydeksi. Siitä lasketaan takaisinpäin yhden
+    kartan voittotodennäköisyys <em>p</em> ja edelleen muut formaatit:
+  </p>
+  <ul>
+    <li>Bo1 = p</li>
+    <li>Bo3 = p² · (3 − 2p)</li>
+    <li>Bo5 = p³ · (10 − 15p + 6p²)</li>
+  </ul>
+  <p class="muted">
+    Oletus: kartat ovat toisistaan riippumattomia ja yhtä vaikeita. Todellisuudessa
+    karttapickit vaikuttavat. Mallin tarkkuus löytyy sivulta
+    <a href="{{ url_for('stats.model_stats') }}">Mallin tilasto</a>.
+  </p>
+</details>
 {% endblock %}

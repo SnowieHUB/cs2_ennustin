@@ -156,6 +156,19 @@ td.event { font-size: 0.8rem; }
 }
 .help-text p { margin: 8px 0; }
 
+/* --- Mallin tilasto --- */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin: 16px 0 8px; }
+.stat-box { text-align: center; margin: 0; }
+.stat-big { font-size: 2rem; font-weight: 700; margin: 4px 0; }
+.calib { display: flex; align-items: center; gap: 8px; }
+.calib-num { width: 3.5em; font-variant-numeric: tabular-nums; }
+.calib-bar { margin: 0; flex: 1; max-width: 200px; height: 8px; }
+.hit { color: var(--win); }
+.miss { color: var(--loss); }
+.toggle { display: flex; flex-wrap: wrap; gap: 8px; }
+.toggle a { margin-right: 0; }
+p.stat-note { margin-bottom: 20px; }  /* p. tekee säännöstä tarkemman kuin .small, joten tämä voittaa */
+
 /* --- Tier 1 / kaikki -valitsin --- */
 .toggle a { margin-right: 8px; padding: 4px 12px; border: 1px solid var(--border); border-radius: 14px; color: var(--muted); }
 .toggle a.active { background: var(--accent); color: #111; border-color: var(--accent); }
@@ -176,6 +189,12 @@ footer { max-width: 1100px; margin: 0 auto; padding: 16px; color: var(--muted); 
 .format-probs { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
 .format-probs .fav { font-weight: 700; }
 td.actual, span.actual { color: var(--accent); font-weight: 700; }
+/* Bo3-rivi korostetaan: hieman isompi teksti. */
+.format.main .format-probs { font-size: 1.1rem; }
+.small-inline { font-size: 0.75rem; font-weight: 400; }
+/* Avattava selitys: <summary> sisältää otsikon, joten nuoli ja otsikko samalle riville. */
+details.explain summary { cursor: pointer; }
+details.explain summary h2 { display: inline; font-size: 1.1rem; }
 
 /* --- Käynnissä olevat ottelut --- */
 .match.is-live { border-color: var(--loss); }

@@ -87,6 +87,17 @@ def get_recent_results(conn, max_rank: int | None = None, limit: int = 20):
     return conn.execute(sql, (*params, limit)).fetchall()
 
 
+def get_results_since(conn, since: str | None, max_rank: int | None = None):
+    """Pelatut ottelut annetusta päivästä alkaen (uusin ensin). since=None = kaikki."""
+    conditions, params = _filters(max_rank, None)
+    conditions = ["m.status = 'completed'", *conditions]
+    if since:
+        conditions.append("m.played_at >= ?")
+        params = [*params, since]
+    sql = _MATCH_SELECT + " WHERE " + " AND ".join(conditions) + " ORDER BY m.played_at DESC"
+    return conn.execute(sql, params).fetchall()
+
+
 def delete_upcoming(conn) -> None:
     """Poistaa kaikki tulevat ja käynnissä olevat ottelut.
 
