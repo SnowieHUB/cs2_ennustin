@@ -7,6 +7,7 @@ Joukkueiden sivut:
 from flask import Blueprint, abort, render_template
 
 from app.database.db import get_db
+from app.maps.service import team_map_stats
 from app.matches import repository as matches_repo
 from app.predictions.service import add_predictions, get_rankings, team_rating
 from app.teams import repository as teams_repo
@@ -37,4 +38,5 @@ def team_detail(team_id: int):
         matches=teams_repo.get_team_matches(conn, team_id),
         live=add_predictions(conn, matches_repo.get_live(conn, team_id=team_id)),
         upcoming=add_predictions(conn, matches_repo.get_upcoming(conn, team_id=team_id)),
+        map_stats=team_map_stats(conn, team_id),
     )

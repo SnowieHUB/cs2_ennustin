@@ -88,3 +88,38 @@ CREATE TABLE IF NOT EXISTS odds (
     updated_at  TEXT NOT NULL       -- milloin kertoimet haettiin (UTC)
 );
 CREATE INDEX IF NOT EXISTS idx_odds_teams ON odds(team1_id, team2_id);
+
+-- Liquipedian joukkuelyhenteet ("vit") ja niiden sivut ("Team Vitality").
+-- Tallennetaan, jotta samaa lyhennettä ei tarvitse selvittää uudelleen.
+CREATE TABLE IF NOT EXISTS team_templates (
+    template    TEXT PRIMARY KEY,
+    page        TEXT NOT NULL
+);
+
+-- Turnaussivujen ottelut (sarjat). Omana tauluna, koska matches-taulun tulevat
+-- ottelut haetaan joka kerta uudelleen. Yhdistetään otteluihin joukkueiden ja ajan perusteella.
+CREATE TABLE IF NOT EXISTS series (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_page  TEXT NOT NULL,      -- turnaussivu, esim. PGL/2026/Masters
+    played_at   TEXT NOT NULL,      -- UTC
+    team1_id    INTEGER NOT NULL REFERENCES teams(id),
+    team2_id    INTEGER NOT NULL REFERENCES teams(id),
+    best_of     INTEGER,
+    score1      INTEGER NOT NULL DEFAULT 0,   -- voitetut kartat
+    score2      INTEGER NOT NULL DEFAULT 0,
+    finished    INTEGER NOT NULL DEFAULT 0,   -- 1 = ottelu on ohi
+    hltv_id     INTEGER,            -- ottelun tunnus HLTV:ssä
+    UNIQUE (event_page, played_at, team1_id, team2_id)
+);
+CREATE INDEX IF NOT EXISTS idx_series_teams ON series(team1_id, team2_id);
+
+-- Yksittäiset kartat. rounds = voitetut kierrokset (NULL = ei vielä tiedossa).
+CREATE TABLE IF NOT EXISTS series_maps (
+    series_id   INTEGER NOT NULL REFERENCES series(id) ON DELETE CASCADE,
+    map_number  INTEGER NOT NULL,   -- monesko kartta sarjassa (1, 2, 3...)
+    map_name    TEXT NOT NULL,
+    rounds1     INTEGER,
+    rounds2     INTEGER,
+    finished    INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (series_id, map_number)
+);

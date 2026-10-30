@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "matches/_macros.html" import upcoming_card, score %}
+{% from "maps/_macros.html" import team_maps %}
 {% block title %}{{ team.name }} – CS2 Ennustin{% endblock %}
 
 {% block content %}
@@ -80,5 +81,15 @@
       </tbody>
     </table>
   </section>
+
+  {# Karttatilastot: näytetään vain, jos joukkueelta on karttadataa. #}
+  {% if map_stats.total %}
+  <section class="card">
+    <h2>Kartat <span class="muted small-inline">viimeiset 6 kk</span></h2>
+    {{ team_maps(map_stats) }}
+    <p class="muted small">Kierrosero = voitetut miinus hävityt kierrokset. Bänni päätellään
+      kartasta, jota joukkue ei juuri koskaan pelaa.</p>
+  </section>
+  {% endif %}
 </div>
 {% endblock %}

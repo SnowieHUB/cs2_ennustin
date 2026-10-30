@@ -13,6 +13,7 @@ from flask import Blueprint, redirect, render_template, request, url_for
 from app import config
 from app.database.db import get_db
 from app.matches import repository as matches_repo
+from app.maps.service import compare_teams
 from app.predictions.series import FORMATS
 from app.predictions.service import add_predictions, predict_series
 from app.teams import repository as teams_repo
@@ -89,6 +90,7 @@ def predict():
         result = predict_series(conn, team_a_id, team_b_id)
         result["team_a"] = teams_repo.get_team(conn, team_a_id)
         result["team_b"] = teams_repo.get_team(conn, team_b_id)
+        result["maps"] = compare_teams(conn, team_a_id, team_b_id)
 
     # Tulevat tier 1 -ottelut kaikissa formaateissa.
     upcoming = add_predictions(conn, matches_repo.get_upcoming(conn, max_rank=config.TIER1_MAX_RANK, limit=20))

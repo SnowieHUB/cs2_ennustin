@@ -169,6 +169,23 @@ td.event { font-size: 0.8rem; }
 .toggle a { margin-right: 0; }
 p.stat-note { margin-bottom: 20px; }  /* p. tekee säännöstä tarkemman kuin .small, joten tämä voittaa */
 
+/* --- Karttalista (LIVE-kortti ja lisätiedot) ---
+   Kolme saraketta: kartan nimi | kierrokset | voittaja tai tila. */
+.map-list { list-style: none; padding: 0; margin: 8px 0 4px; font-size: 0.85rem; }
+.map-list li { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; padding: 2px 0; }
+.map-list .map-score { text-align: center; font-variant-numeric: tabular-nums; }
+.map-list .map-state { text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-list .won { font-weight: 700; color: var(--win); }
+.map-list li.current { color: var(--accent); }
+.details-heading { margin: 10px 0 0; }
+
+/* --- Karttatilastot --- */
+.map-better { font-weight: 700; color: var(--win); }
+.map-tag { font-size: 0.7rem; padding: 1px 6px; border-radius: 8px; margin-left: 6px; white-space: nowrap; }
+.map-tag.ban { background: color-mix(in srgb, var(--loss) 20%, transparent); color: var(--loss); }
+.map-tag.best { background: color-mix(in srgb, var(--win) 20%, transparent); color: var(--win); }
+.map-summary { display: flex; flex-wrap: wrap; gap: 4px 24px; margin: 12px 0 0; }
+
 /* --- Tier 1 / kaikki -valitsin --- */
 .toggle a { margin-right: 8px; padding: 4px 12px; border: 1px solid var(--border); border-radius: 14px; color: var(--muted); }
 .toggle a.active { background: var(--accent); color: #111; border-color: var(--accent); }
@@ -200,4 +217,8 @@ details.explain summary h2 { display: inline; font-size: 1.1rem; }
 .match.is-live { border-color: var(--loss); }
 .live-badge { background: var(--loss); color: #fff; font-weight: 700; font-size: 0.7rem; padding: 1px 8px; border-radius: 10px; letter-spacing: 0.05em; }
 .live-score { font-weight: 700; font-variant-numeric: tabular-nums; }
+/* nowrap + flex-shrink: 0 = merkki ja tulos eivät rivity eivätkä kutistu, vaikka
+   turnauksen nimi olisi pitkä. Nimi lyhennetään sen sijaan kolmella pisteellä. */
+.live-badge, .live-score, .match-meta .date { white-space: nowrap; flex-shrink: 0; }
+.match-meta .event { min-width: 0; }
 .small { font-size: 0.75rem; margin: 6px 0 0; }

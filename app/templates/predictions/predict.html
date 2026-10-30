@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "predictions/_macros.html" import team_datalist, team_input %}
 {% from "matches/_macros.html" import team_link %}
+{% from "maps/_macros.html" import map_compare %}
 {% block title %}Ennusta – CS2 Ennustin{% endblock %}
 
 {% block content %}
@@ -49,6 +50,8 @@
     Luku suluissa on joukkueen vahvuus (1500 = keskitaso).
   </p>
 </section>
+
+{{ map_compare(result.maps, result.team_a, result.team_b) }}
 {% endif %}
 
 <h2>Tulevat tier 1 -ottelut kaikissa formaateissa</h2>

@@ -11,6 +11,27 @@
   {% if rank %}<span class="rank">#{{ rank }}</span>{% endif %}
 {% endmacro %}
 
+{# Sarjan kartat kierroksineen. Kartan voittaja lihavoidaan, käynnissä oleva merkitään ▶.
+   Tiedot tulevat Liquipedian turnaussivulta (m.series, katso maps/repository.py). #}
+{% macro map_list(m) %}
+<ul class="map-list">
+  {% for map in m.series.maps %}
+  {% set started = map.rounds1 is not none or map.rounds2 is not none %}
+  <li class="{{ 'current' if started and not map.finished }}">
+    <span class="map-name">{% if started and not map.finished %}▶ {% endif %}{{ map.name }}</span>
+    {% if started %}
+      <span class="map-score">
+        <span class="{{ 'won' if map.finished and (map.rounds1 or 0) > (map.rounds2 or 0) }}">{{ map.rounds1 or 0 }}</span>–<span class="{{ 'won' if map.finished and (map.rounds2 or 0) > (map.rounds1 or 0) }}">{{ map.rounds2 or 0 }}</span>
+      </span>
+      <span class="muted map-state">{% if map.finished %}{{ m.team1_name if (map.rounds1 or 0) > (map.rounds2 or 0) else m.team2_name }}{% else %}käynnissä{% endif %}</span>
+    {% else %}
+      <span class="muted map-score">–</span><span class="muted map-state">tulossa</span>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endmacro %}
+
 {# Avattava "Lisätiedot"-osio ottelukortin alareunaan.
    <details> ja <summary> ovat HTML:n valmiita elementtejä: summary näkyy aina,
    ja sitä klikkaamalla loput sisällöstä aukeaa. JavaScriptiä ei tarvita.
@@ -59,11 +80,18 @@
     </div>
   </details>
   {% endif %}
-  {% if m.event_url or m.stream_url %}
+  {# Pelattujen otteluiden kartat (käynnissä olevilla ne näkyvät jo kortissa). #}
+  {% if m.status == 'completed' and m.series and m.series.maps %}
+    <p class="muted details-heading">Kartat</p>
+    {{ map_list(m) }}
+  {% endif %}
+  {% if m.event_url or m.stream_url or (m.series and m.series.hltv_id) %}
   <p class="match-links">
     {# target="_blank" avaa linkin uuteen välilehteen, rel="noopener" on turvallisuussyistä. #}
     {% if m.event_url %}<a href="{{ m.event_url }}" target="_blank" rel="noopener">Turnaussivu ↗</a>{% endif %}
     {% if m.stream_url %}<a href="{{ m.stream_url }}" target="_blank" rel="noopener">Striimi ↗</a>{% endif %}
+    {# HLTV ohjaa osoitteen /matches/<tunnus>/<mitä tahansa> oikealle ottelusivulle. #}
+    {% if m.series and m.series.hltv_id %}<a href="https://www.hltv.org/matches/{{ m.series.hltv_id }}/match" target="_blank" rel="noopener">HLTV ↗</a>{% endif %}
   </p>
   {% endif %}
 </details>
@@ -77,7 +105,10 @@
   <div class="match-meta">
     {% if live %}
       <span class="live-badge">LIVE</span>
-      {% if m.status == 'live' %}
+      {# Turnaussivun tilanne on yleensä tuoreempi kuin Liquipedia:Matches-listan. #}
+      {% if m.series and m.series.maps %}
+        <span class="live-score">{{ m.series.score1 }} : {{ m.series.score2 }}</span>
+      {% elif m.status == 'live' %}
         <span class="live-score">{{ m.team1_score }} : {{ m.team2_score }}</span>
       {% else %}
         <span class="date">alkoi {{ m.played_at | local_time }}</span>
@@ -101,6 +132,7 @@
   {# Palkki: vihreän osan leveys = joukkueen 1 voittotodennäköisyys. #}
   <div class="bar"><div class="bar-a" style="width: {{ m.prob1 * 100 }}%"></div></div>
   {% if live %}
+    {% if m.series and m.series.maps %}{{ map_list(m) }}{% endif %}
     <p class="muted small">Ennuste on tehty ennen ottelun alkua.</p>
   {% endif %}
   {% if m.uncertain %}

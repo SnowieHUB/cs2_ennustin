@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.matches import repository as matches_repo
+from app.maps import repository as maps_repo
 from app.odds import repository as odds_repo
 from app.predictions.elo import EloEngine, match_score
 from app.predictions.model import MODEL_PATH, Model
@@ -147,6 +148,8 @@ def add_predictions(conn, matches) -> list[dict]:
             state.engine.matches_played[match["team2_id"]],
         ) < 10
         item["odds"] = _odds_for(conn, match)
+        # Turnaussivun tiedot: kartat, kierrokset ja HLTV-tunnus (None, jos ei löydy).
+        item["series"] = maps_repo.find_series(conn, match["team1_id"], match["team2_id"], match["played_at"])
         result.append(item)
     return result
 
@@ -173,6 +176,8 @@ def add_result_predictions(conn, matches) -> list[dict]:
                 team1_favourite = item["prob1"] > 0.5
                 item["correct"] = team1_favourite == (match["winner_id"] == match["team1_id"])
         item["odds"] = _odds_for(conn, match)
+        # Turnaussivun tiedot: kartat, kierrokset ja HLTV-tunnus (None, jos ei löydy).
+        item["series"] = maps_repo.find_series(conn, match["team1_id"], match["team2_id"], match["played_at"])
         result.append(item)
     return result
 

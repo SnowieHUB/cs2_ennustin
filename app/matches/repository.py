@@ -68,11 +68,19 @@ def get_live(conn, max_rank: int | None = None, team_id: int | None = None):
         Ne ovat todennäköisesti käynnissä, vaikka päivitystä ei ole ajettu.
     Kun tulos tulee seuraavassa päivityksessä, ottelu siirtyy tuloksiin.
     Yli LIVE_MAX_HOURS tuntia sitten alkaneita ei näytetä (unohtuneet merkinnät).
+    Ei myöskään niitä, joiden tulos on jo tallennettu (turnaussivulta, katso sync_maps.py),
+    vaikka Liquipedia:Matches-lista näyttäisi ne vielä käynnissä.
     """
     conditions, params = _filters(max_rank, team_id)
     conditions = [
         "(m.status = 'live' OR (m.status = 'upcoming' AND m.played_at <= ?))",
         "m.played_at > ?",
+        """NOT EXISTS (
+            SELECT 1 FROM matches done
+            WHERE done.status = 'completed'
+              AND substr(done.played_at, 1, 10) = substr(m.played_at, 1, 10)
+              AND ((done.team1_id = m.team1_id AND done.team2_id = m.team2_id)
+                OR (done.team1_id = m.team2_id AND done.team2_id = m.team1_id)))""",
         *conditions,
     ]
     sql = _MATCH_SELECT + " WHERE " + " AND ".join(conditions) + " ORDER BY m.played_at"

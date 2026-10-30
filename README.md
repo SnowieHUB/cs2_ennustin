@@ -23,18 +23,20 @@ opetetulla mallilla.
 | **Etusivu** `/` | *Menossa nyt* (käynnissä olevat tier 1 -ottelut), *Tulossa* ennusteineen, viimeisimmät tulokset, vahvuusranking ja viimeisimmät kokoonpanomuutokset |
 | **Ottelut** `/matches/` | Käynnissä olevat, tulevat ja pelatut ottelut. Valinta tier 1 / kaikki |
 | **Joukkueet** `/teams/` | VRS-listan joukkueet mallin vahvuuden mukaan järjestettynä |
-| **Joukkueen sivu** `/teams/<id>` | Kokoonpano (nimi, lippu, IGL-rooli, liittymispäivä), valmentaja, entiset pelaajat, tulevat ottelut ja tulokset |
+| **Joukkueen sivu** `/teams/<id>` | Kokoonpano (nimi, lippu, IGL-rooli, liittymispäivä), valmentaja, entiset pelaajat, tulevat ottelut, tulokset ja karttatilastot |
 | **Pelaajat** `/players/` | Kaikki pelaajat ja haku. Pelaajan sivulla urahistoria joukkueittain |
-| **Ennusta** `/predict` | Kahden joukkueen ennuste (Bo3) ja mallin tarkkuustaulukko |
-| **Sarjaennuste** `/series` | Sama ottelu Bo1-, Bo3- ja Bo5-formaatissa sekä tulevat ottelut kaikissa formaateissa |
+| **Ennusta** `/predict` | Kahden joukkueen ennuste Bo1-, Bo3- ja Bo5-formaatissa, karttavertailu (voitto-% kartoittain, paras kartta, todennäköinen bänni) ja tulevat ottelut kaikissa formaateissa |
+| **Mallin tilasto** `/stats/` | Ennusteiden osumaprosentti, vertailu Pinnaclen kertoimiin, luotettavuustaulukko ja opetuksen testitulokset |
 
 Muuta:
 - **Siirtojen seuranta:** kun pelaaja vaihtaa joukkuetta, vanha jakso suljetaan ja uusi avataan, joten historia säilyy.
 - **Joukkuehaku:** ennustesivuilla on hakukenttä, joka suodattaa nimiä kirjoittaessa. Haku hyväksyy myös lyhenteet (esim. NAVI).
 - **Ajat Suomen ajassa**, ja ennusteet automaattisesti ottelun omalle formaatille (Bo1/Bo3/Bo5).
+- **Live-tilanne:** käynnissä olevan ottelun kartat ja kierrokset turnaussivulta, päivitys 5 minuutin välein.
 - **Tuloskortit:** pelatun ottelun tulos, ennen ottelua laskettu ennuste ja tieto siitä, osuiko ennuste.
 - **Lisätiedot:** jokaisen ottelun avattavassa osiossa on päivä, kellonaika, tapahtuma, vaihe, formaatti,
-  linkki Liquipedian turnaussivulle ja striimiin sekä Pinnaclen kertoimet verrattuna mallin ennusteeseen.
+  linkit Liquipedian turnaussivulle, striimiin ja HLTV:hen, pelatut kartat sekä Pinnaclen kertoimet
+  verrattuna mallin ennusteeseen.
 
 ## Käytetyt tekniikat ja palvelut
 
@@ -73,6 +75,7 @@ hoituvat Pythonin vakiokirjastolla.
 | [Valve Regional Standings](https://github.com/ValveSoftware/counter-strike_regional_standings) | Ranking, pisteet, kokoonpanot ja noin 2 vuoden otteluhistoria (noin 30 000 ottelua) | Noin kerran kuussa |
 | [Liquipedia: Matches](https://liquipedia.net/counterstrike/Liquipedia:Matches) | Noin 50 tulevaa tai käynnissä olevaa ottelua ja 50 tuoretta tulosta | Jatkuvasti |
 | Liquipedia: joukkuesivut | Pelaajien oikeat nimet, maat, IGL-rooli, liittymispäivät ja valmentaja | Jatkuvasti |
+| Liquipedia: turnaussivut (S-, A- ja B-Tier) | Ottelujen kartat, kierrokset, HLTV-tunnukset ja käynnissä olevien otteluiden tilanne (6 kk historia) | 5 min (live) / päivittäin |
 | [OddsPapi](https://oddspapi.io) | Pinnaclen voittajakertoimet (yleensä noin vuorokautta ennen ottelua) | Neljän tunnin välein |
 
 - **Valven repo** kloonataan gitillä kansioon `data/vrs_repo`. Vain tarvittavat tiedostot ladataan
@@ -81,6 +84,10 @@ hoituvat Pythonin vakiokirjastolla.
   Data on CC-BY-SA 3.0 -lisenssillä, joten lähde mainitaan jokaisen sivun alalaidassa.
 - **Tier 1** = ainakin toinen joukkue on VRS:n top 30:ssä (`app/config.py`: `TIER1_MAX_RANK`).
   Liquipedian ottelulistassa ei ole turnauksen tasoa, joten taso päätellään joukkueista.
+- **Turnaussivut:** turnauslista ja joukkuelyhenteet (`vit` -> Team Vitality) selvitetään
+  `expandtemplates`-pyynnöllä (1 / 30 s), sivut haetaan 50 kerrallaan (1 / 2 s). Ensimmäinen haku
+  kattaa 6 kk ja kestää noin 3–4 minuuttia, myöhemmät vain 2 viikkoa. Bännejä ei ole datassa
+  luotettavasti, joten ne päätellään: kartta, jota joukkue pelaa korkeintaan 5 % peleistään.
 - **OddsPapi:** ilmaisessa tilissä on 250 pyyntöä kuukaudessa. Yksi päivitys maksaa 1 pyynnön
   (otteluluettelo), koska kertoimet luetaan ilmaisesta historiarajapinnasta. Haku lopettaa, kun kiintiö
   on lähes käytetty, ja sivun alalaidassa kerrotaan siitä. Jos edellisestä hausta on alle 3 tuntia,
@@ -122,7 +129,7 @@ Piirteet yhdistetään **logistisella regressiolla**, joka muuttaa painotetun su
 - Elo-parametrit haetaan kokeilemalla 60 yhdistelmää (grid search).
 - Lopuksi malli opetetaan koko datalla ja tallennetaan tiedostoon `data/model.json`.
 
-Testijakson tulokset (lokakuu 2026, näkyvät myös sivulla /predict):
+Testijakson tulokset (lokakuu 2026, näkyvät myös sivulla /stats/):
 
 | Malli | Osumat | Tier 1 osumat | Log loss |
 |---|---|---|---|
@@ -148,7 +155,8 @@ Siitä lasketaan puolitushaulla yhden kartan todennäköisyys p ja edelleen muut
 | Bo3 | p² · (3 − 2p) |
 | Bo5 | p³ · (10 − 15p + 6p²) |
 
-Oletus: kartat ovat toisistaan riippumattomia. Karttapickien vaikutus vaatisi karttadataa.
+Oletus: kartat ovat toisistaan riippumattomia. Karttatilastot näytetään Ennusta-sivulla erikseen,
+mutta ne eivät (vielä) vaikuta ennusteen prosentteihin.
 
 ## Kansiorakenne
 
@@ -169,6 +177,11 @@ cs2_ennustin/
     │   ├── repository.py        SQL-kyselyt
     │   └── routes.py            Sivut /teams/...
     ├── players/               PELAAJAT (repository + routes /players/...)
+    ├── maps/                  KARTAT
+    │   ├── repository.py        Sarjat, kartat ja joukkuelyhenteet
+    │   └── service.py           Karttapooli, parhaat kartat ja todennäköiset bännit
+    ├── odds/                  KERTOIMET (repository + kiintiön tila)
+    ├── stats/                 MALLIN TILASTO (service + routes /stats/)
     ├── matches/               OTTELUT
     │   ├── repository.py        Tulevat, käynnissä olevat ja pelatut ottelut
     │   └── routes.py            Sivu /matches/
@@ -180,7 +193,7 @@ cs2_ennustin/
     │   ├── model.py             Opetettu malli: painot ja todennäköisyyden kaava
     │   ├── series.py            Bo1/Bo3/Bo5-laskenta (ei tietokantakoodia)
     │   ├── service.py           Yhdistää datan ja mallin
-    │   └── routes.py            Sivut /predict ja /series sekä joukkuehaku
+    │   └── routes.py            Sivu /predict ja joukkuehaku (/series ohjaa sinne)
     ├── training/              MALLIN OPETUS
     │   ├── dataset.py           Harjoitusrivit historiasta (ilman tulevaisuuden tietoa)
     │   └── train.py             Parametrien haku, opetus, testaus ja tallennus
@@ -189,8 +202,10 @@ cs2_ennustin/
     │   ├── sync_vrs.py          Ranking, kokoonpanot ja otteluhistoria
     │   ├── sync_matches.py      Tulevat, käynnissä olevat ja pelatut ottelut
     │   ├── sync_team_info.py    Pelaajien roolit, nimet ja maat
+    │   ├── sync_maps.py         Turnaussivujen kartat ja live-tilanne
+    │   ├── sync_odds.py         Kertoimet ja kiintiön valvonta
     │   ├── sync_rosters.py      Yleinen kokoonpanojen synkronointi
-    │   └── sources/             Datalähteet (VRS, Liquipedia, joukkuesivut, JSON, PandaScore)
+    │   └── sources/             Datalähteet (VRS, Liquipedia, turnaussivut, OddsPapi, JSON, PandaScore)
     ├── main/routes.py         Etusivu
     ├── templates/             HTML-pohjat osa-alueittain (_macros.html = yhteiset palat)
     └── static/css/style.css   Tyylit
@@ -222,6 +237,8 @@ python manage.py run                 # kehityspalvelin: http://127.0.0.1:5000
 | `python manage.py sync` | Päivittää kaiken: ranking, otteluhistoria, ottelut ja pelaajatiedot |
 | `python manage.py sync --only matches` | Päivittää vain tulevat, käynnissä olevat ja pelatut ottelut |
 | `python manage.py sync --only teams` | Päivittää vain pelaajatiedot Liquipediasta |
+| `python manage.py sync --only maps` | Päivittää turnausten kartat ja kierrokset |
+| `python manage.py sync --only live` | Päivittää käynnissä olevien otteluiden tilanteen |
 | `python manage.py sync --only odds` | Päivittää kertoimet (vaatii OddsPapin API-avaimen, 1 pyyntö / ajo) |
 | `python manage.py train` | Opettaa ennustemallin uudelleen |
 | `python manage.py run` | Käynnistää kehityspalvelimen (debug-tila, **ei** internetiin) |
@@ -278,6 +295,7 @@ Cloudflare hoitaa HTTPS:n kävijöille.
 30 5 * * *    cd /polku/cs2_ennustin && .venv/bin/python manage.py sync >> data/sync.log 2>&1
 0 7 8 * *     cd /polku/cs2_ennustin && .venv/bin/python manage.py train >> data/sync.log 2>&1
 15 */4 * * *  cd /polku/cs2_ennustin && .venv/bin/python manage.py sync --only odds >> data/sync.log 2>&1
+*/5 * * * *   cd /polku/cs2_ennustin && .venv/bin/python manage.py sync --only live >> data/sync.log 2>&1
 ```
 
 | Ajastus | Mitä |
@@ -285,6 +303,7 @@ Cloudflare hoitaa HTTPS:n kävijöille.
 | `*/30 * * * *` | Ottelut 30 minuutin välein, jolloin päättyneet ottelut siirtyvät tuloksiin |
 | `30 5 * * *` | Kaikki data joka päivä klo 5.30 |
 | `0 7 8 * *` | Mallin uudelleenopetus joka kuun 8. päivä (Valve julkaisee rankingin kuun alussa) |
+| `*/5 * * * *` | Käynnissä olevien otteluiden kartat ja kierrokset 5 minuutin välein |
 | `15 */4 * * *` | Kertoimet neljän tunnin välein: noin 186 pyyntöä kuukaudessa, kun kiintiö on 250 |
 
 Kentät ovat järjestyksessä minuutti, tunti, päivä, kuukausi ja viikonpäivä.

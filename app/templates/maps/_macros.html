@@ -1,0 +1,80 @@
+{#
+  Karttatilastojen näkymät. Data tulee app/maps/service.py:stä.
+#}
+
+{# Voitto-% ja pelatut, esim. "72 % (25)". Tyhjä viiva, jos karttaa ei ole pelattu. #}
+{% macro rate_cell(m, better=False) -%}
+  {%- if m.played -%}
+    <span class="{{ 'map-better' if better }}">{{ m.rate | percent }}</span> <span class="muted">({{ m.played }})</span>
+  {%- else -%}
+    <span class="muted">–</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{# Kahden joukkueen vertailu Ennusta-sivulle. #}
+{% macro map_compare(cmp, team_a, team_b) %}
+<section class="card">
+  <h2>Kartat <span class="muted small-inline">viimeiset {{ (cmp.days / 30) | round | int }} kk, voitto-% (pelattu)</span></h2>
+  <table class="map-table">
+    <thead>
+      <tr><th>Kartta</th><th class="num">{{ team_a.name }}</th><th class="num">{{ team_b.name }}</th></tr>
+    </thead>
+    <tbody>
+      {% for name in cmp.pool %}
+      {% set a, b = cmp.a.maps[name], cmp.b.maps[name] %}
+      <tr>
+        <td>
+          {{ name }}
+          {% if name == cmp.a.ban %}<span class="map-tag ban" title="{{ team_a.name }} pelaa tätä tuskin koskaan">{{ team_a.name }} bännää</span>{% endif %}
+          {% if name == cmp.b.ban %}<span class="map-tag ban" title="{{ team_b.name }} pelaa tätä tuskin koskaan">{{ team_b.name }} bännää</span>{% endif %}
+        </td>
+        {# Parempi voitto-% korostetaan, jos molemmat ovat pelanneet karttaa. #}
+        <td class="num">{{ rate_cell(a, a.played and b.played and a.rate > b.rate) }}</td>
+        <td class="num">{{ rate_cell(b, a.played and b.played and b.rate > a.rate) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="map-summary">
+    {% for team, s in [(team_a, cmp.a), (team_b, cmp.b)] %}
+      <span><strong>{{ team.name }}:</strong>
+        paras kartta {{ s.best or '–' }}{% if s.ban %}, todennäköinen bänni {{ s.ban }}{% endif %}</span>
+    {% endfor %}
+  </p>
+  <details class="help">
+    <summary><span class="help-icon">?</span> Miten bännit päätellään?</summary>
+    <div class="help-text">
+      <p>Bännit eivät näy tuloksissa, joten ne päätellään pelatuista kartoista: jos joukkue
+        on pelannut karttaa korkeintaan 5 % peleistään, se todennäköisesti bännää sen aina.</p>
+      <p><strong>Paras kartta</strong> on korkein voitto-% kartoista, joita joukkue on pelannut
+        vähintään 5 kertaa.</p>
+      <p class="muted">Data: Liquipedian turnaussivut (S-, A- ja B-Tier). Karttapooli päätellään
+        viimeisen kuukauden peleistä.</p>
+    </div>
+  </details>
+</section>
+{% endmacro %}
+
+{# Yhden joukkueen karttataulukko joukkueen sivulle. #}
+{% macro team_maps(stats) %}
+<table class="map-table">
+  <thead>
+    <tr><th>Kartta</th><th class="num">Voitto-%</th><th class="num">Pelattu</th><th class="num">Kierrosero</th></tr>
+  </thead>
+  <tbody>
+    {# sort: eniten pelattu ensin. reverse=True = suurin ensin. #}
+    {% for name, m in stats.maps.items() | sort(attribute='1.played', reverse=True) %}
+    <tr>
+      <td>
+        {{ name }}
+        {% if name == stats.best %}<span class="map-tag best">paras</span>{% endif %}
+        {% if name == stats.ban %}<span class="map-tag ban">todennäk. bänni</span>{% endif %}
+      </td>
+      <td class="num">{{ m.rate | percent if m.played else '–' }}</td>
+      <td class="num">{{ m.played }}</td>
+      <td class="num {{ 'hit' if m.round_diff > 0 else 'miss' if m.round_diff < 0 }}">{{ '%+d' | format(m.round_diff) if m.played else '–' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}

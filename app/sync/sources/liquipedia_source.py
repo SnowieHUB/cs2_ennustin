@@ -33,10 +33,21 @@ _LAST_FETCH_FILE = config.DATA_DIR / ".liquipedia_last_fetch"
 
 def fetch_matches_html() -> str:
     """Hakee otteluiden HTML:n ja odottaa ensin tarvittaessa, ettei rajaa ylitetä."""
-    _wait_for_rate_limit(_LAST_FETCH_FILE)
-    data = json.loads(get_text(API_URL))
-    _LAST_FETCH_FILE.write_text(str(time.time()))
+    data = json.loads(get_slow(API_URL))
     return data["parse"]["text"]["*"]
+
+
+def get_slow(url: str) -> str:
+    """Raskas Liquipedia-pyyntö (parse tai expandtemplates): enintään 1 / 30 s.
+
+    Edellisen haun aika on tiedostossa, joten raja pätee myös eri komentojen välillä
+    (esim. cron ajaa ottelu- ja karttahaun eri aikaan).
+    """
+    _wait_for_rate_limit(_LAST_FETCH_FILE)
+    try:
+        return get_text(url)
+    finally:
+        _LAST_FETCH_FILE.write_text(str(time.time()))
 
 
 def _wait_for_rate_limit(path: Path) -> None:
