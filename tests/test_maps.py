@@ -10,7 +10,7 @@ from app.database.db import connect, init_schema
 from app.maps import repository as maps_repo
 from app.maps.service import team_map_stats
 from app.sync.sources.liquipedia_tournaments import (
-    parse_date, parse_tournament_list, parse_tournament_matches, title_from_url,
+    page_url, parse_date, parse_tournament_list, parse_tournament_matches, title_from_url, tournament_name,
 )
 from app.teams import repository as teams_repo
 
@@ -132,3 +132,22 @@ def test_result_replaces_live_row(conn):
     assert matches_repo.save_match(conn, started, None, 3, "completed", b, a, 2, 0) is True
     rows = conn.execute("SELECT status, event, team1_score, team2_score, winner_id FROM matches").fetchall()
     assert [tuple(r) for r in rows] == [("completed", "PGL Masters", 0, 2, b)]
+
+
+def test_next_unplayed_map_is_current(conn):
+    a = teams_repo.get_or_create_team(conn, "A")
+    b = teams_repo.get_or_create_team(conn, "B")
+    match = {"played_at": "2026-10-31 11:00", "best_of": 5, "score1": 2, "score2": 1, "finished": False, "hltv_id": None,
+             "maps": [{"number": 1, "name": "Ancient", "rounds1": 2, "rounds2": 13, "finished": True},
+                      {"number": 2, "name": "Mirage", "rounds1": None, "rounds2": None, "finished": False},
+                      {"number": 3, "name": "Nuke", "rounds1": None, "rounds2": None, "finished": False}]}
+    maps_repo.save_series(conn, "Testi", match, a, b)
+    maps = maps_repo.find_series(conn, a, b, "2026-10-31 11:00")["maps"]
+    assert [m["current"] for m in maps] == [False, True, False]
+
+
+def test_tournament_name_from_parent_page():
+    pages = {"PGL/2026/Masters": "{{Infobox league\n|name=PGL Masters Bucharest 2026\n|image=x.png\n}}",
+             "PGL/2026/Masters/Playoffs": "{{Bracket ...}}"}
+    assert tournament_name(pages, "PGL/2026/Masters/Playoffs") == "PGL Masters Bucharest 2026"
+    assert page_url("ESL/Pro League/Season 24") == "https://liquipedia.net/counterstrike/ESL/Pro_League/Season_24"

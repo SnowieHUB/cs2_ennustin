@@ -135,6 +135,25 @@ def resolve_team_pages(templates: list[str]) -> dict[str, str]:
 
 # --- Wikitekstin jäsentäminen -------------------------------------------
 
+def tournament_name(pages: dict[str, str], title: str) -> str | None:
+    """Turnauksen nimi tietolaatikosta ({{Infobox league|name=PGL Masters Bucharest 2026}}).
+
+    Alasivulla (PGL/2026/Masters/Playoffs) ei ole tietolaatikkoa, joten nimi
+    haetaan ylemmältä sivulta.
+    """
+    while title:
+        found = re.search(r"\{\{Infobox league.*?\|name=([^|\n}]+)", pages.get(title, ""), re.S)
+        if found:
+            return found.group(1).strip()
+        title = title.rpartition("/")[0] if "/" in title else ""
+    return None
+
+
+def page_url(title: str) -> str:
+    """Sivun nimestä osoite: "PGL/2026/Masters" -> https://liquipedia.net/counterstrike/PGL/2026/Masters"""
+    return "https://liquipedia.net/counterstrike/" + urllib.parse.quote(title.replace(" ", "_"))
+
+
 def _block_end(text: str, start: int) -> int:
     """Etsii kohdasta start alkavan {{...}}-lohkon lopun laskemalla sulkeita.
 

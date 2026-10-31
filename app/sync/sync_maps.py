@@ -52,6 +52,7 @@ def _save_pages(conn, pages: dict[str, str]) -> tuple[int, int]:
 
     series_count = map_count = 0
     for title, matches in parsed.items():
+        event = source.tournament_name(pages, title)
         for m in matches:
             if m["team1"] not in known or m["team2"] not in known:
                 continue  # lyhennettä ei tunnistettu
@@ -61,8 +62,9 @@ def _save_pages(conn, pages: dict[str, str]) -> tuple[int, int]:
             map_count += len(m["maps"])
             if m["finished"] and m["score1"] != m["score2"] and m["played_at"] >= results_since:
                 matches_repo.save_match(
-                    conn, m["played_at"], None, m["best_of"], "completed",
+                    conn, m["played_at"], event, m["best_of"], "completed",
                     team1_id, team2_id, m["score1"], m["score2"], source="liquipedia",
+                    event_url=source.page_url(title),
                 )
     conn.commit()
     return series_count, map_count

@@ -136,9 +136,9 @@ def save_match(conn, played_at, event, best_of, status, team1_id, team2_id,
     olemassa (katso UNIQUE schema.sql:ssä).
     """
     if status == "completed" and _completed_exists_on_day(conn, played_at[:10], team1_id, team2_id):
-        # Ottelu on jo tallennettu, mutta siitä voi puuttua linkki (esim. Valven datasta tullut).
-        if event_url:
-            _add_event_url(conn, played_at[:10], team1_id, team2_id, event_url)
+        # Ottelu on jo tallennettu, mutta siitä voi puuttua turnaus ja linkki (esim. Valven datasta tullut).
+        if event or event_url:
+            _fill_event(conn, played_at[:10], team1_id, team2_id, event, event_url)
         return False
 
     # Voittaja päätellään tuloksesta, jos sitä ei annettu erikseen.
@@ -183,15 +183,19 @@ def save_match(conn, played_at, event, best_of, status, team1_id, team2_id,
     return cursor.rowcount == 1
 
 
-def _add_event_url(conn, day: str, team1_id: int, team2_id: int, event_url: str) -> None:
-    """Lisää turnaussivun linkin jo tallennettuun otteluun, jos siltä puuttuu linkki."""
+def _fill_event(conn, day: str, team1_id: int, team2_id: int, event: str | None, event_url: str | None) -> None:
+    """Täydentää jo tallennetun ottelun puuttuvan turnauksen nimen ja linkin.
+
+    COALESCE(a, b) palauttaa a:n, jos se ei ole tyhjä, muuten b:n. Olemassa olevaa
+    tietoa ei siis koskaan korvata, vain tyhjät kohdat täytetään.
+    """
     conn.execute(
         """
-        UPDATE matches SET event_url = ?
-        WHERE status = 'completed' AND event_url IS NULL AND substr(played_at, 1, 10) = ?
+        UPDATE matches SET event = COALESCE(event, ?), event_url = COALESCE(event_url, ?)
+        WHERE status = 'completed' AND substr(played_at, 1, 10) = ?
           AND ((team1_id = ? AND team2_id = ?) OR (team1_id = ? AND team2_id = ?))
         """,
-        (event_url, day, team1_id, team2_id, team2_id, team1_id),
+        (event, event_url, day, team1_id, team2_id, team2_id, team1_id),
     )
 
 

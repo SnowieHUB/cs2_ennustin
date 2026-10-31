@@ -65,7 +65,16 @@ def find_series(conn, team1_id: int, team2_id: int, played_at: str) -> dict | No
     maps = []
     for m in conn.execute("SELECT * FROM series_maps WHERE series_id = ? ORDER BY map_number", (row["id"],)):
         r1, r2 = (m["rounds2"], m["rounds1"]) if swap else (m["rounds1"], m["rounds2"])
-        maps.append({"name": m["map_name"], "rounds1": r1, "rounds2": r2, "finished": bool(m["finished"])})
+        maps.append({"name": m["map_name"], "rounds1": r1, "rounds2": r2, "finished": bool(m["finished"]), "current": False})
+    # Käynnissä oleva kartta = ensimmäinen pelaamaton kartta, jos sarja on kesken ja
+    # jokin kartta on jo pelattu tai alkanut. Liquipedia kirjaa kierrokset usein vasta
+    # puoliajalla, joten kartta voi olla käynnissä, vaikka kierroksia ei vielä näy.
+    started = any(m["finished"] or m["rounds1"] is not None or m["rounds2"] is not None for m in maps)
+    if not row["finished"] and started:
+        for m in maps:
+            if not m["finished"]:
+                m["current"] = True
+                break
     score1, score2 = (row["score2"], row["score1"]) if swap else (row["score1"], row["score2"])
     return {
         "score1": score1, "score2": score2, "finished": bool(row["finished"]),

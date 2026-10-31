@@ -17,9 +17,12 @@
 <ul class="map-list">
   {% for map in m.series.maps %}
   {% set started = map.rounds1 is not none or map.rounds2 is not none %}
-  <li class="{{ 'current' if started and not map.finished }}">
-    <span class="map-name">{% if started and not map.finished %}▶ {% endif %}{{ map.name }}</span>
-    {% if started %}
+  <li class="{{ 'current' if map.current }}">
+    <span class="map-name">{% if map.current %}▶ {% endif %}{{ map.name }}</span>
+    {% if map.current and not started %}
+      {# Käynnissä, mutta Liquipedia ei ole vielä kirjannut kierroksia. #}
+      <span class="muted map-score">–</span><span class="map-state">käynnissä</span>
+    {% elif started %}
       <span class="map-score">
         <span class="{{ 'won' if map.finished and (map.rounds1 or 0) > (map.rounds2 or 0) }}">{{ map.rounds1 or 0 }}</span>–<span class="{{ 'won' if map.finished and (map.rounds2 or 0) > (map.rounds1 or 0) }}">{{ map.rounds2 or 0 }}</span>
       </span>
