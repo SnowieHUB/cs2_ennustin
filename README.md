@@ -1,5 +1,11 @@
 # CS2 Ennustin
 
+> **Projekti jatkuu muualla (1.11.2026).** CS2 Ennustin siirrettiin osaksi
+> [snowie-dev](https://github.com/SnowieHUB/snowie-dev)-repoa kansioon
+> [`Cs2Predictor/`](https://github.com/SnowieHUB/snowie-dev/tree/main/Cs2Predictor) koko historioineen,
+> ja sivut löytyvät nyt osoitteesta **[snowie.dev/cs2](https://snowie.dev/cs2)**. Tämä repo jää muistoksi
+> projektin ensimmäisestä versiosta.
+
 Python-sovellus, joka seuraa oikeiden CS2-joukkueiden kokoonpanoja ja pelaajasiirtoja,
 näyttää tulevat ja käynnissä olevat ottelut ja ennustaa niiden voittajat historialla
 opetetulla mallilla.
